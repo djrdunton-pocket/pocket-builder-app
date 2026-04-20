@@ -1,24 +1,44 @@
 import { useState, useEffect, useRef, createContext, useContext } from 'react'
 
 const SUPABASE_URL = 'https://bdmimbwkvdwahbkxkasf.supabase.co'
-const SUPABASE_KEY = 'eyJhbGciJINNU'
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJkbWltYndrdmR3YWhia3hrYXNmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2OTc1ODIsImV4cCI6MjA5MjI3MzU4Mn0.Y7K0JOmlgZrQubq24F8KnuOcc1uZBHr5eWjGtHJINNU'
 
 const S = {
-  bg: '#0b0e16', surface: '#111520', card: '#161b28', border: '#232c3d',
-  accent: '#f0a500', text: '#dde3ef', muted: '#5a6a82',
-  green: '#22c55e', blue: '#3b82f6', red: '#ef4444', purple: '#a78bfa'
+  bg:      '#0a0f1e',
+  surface: '#0d1525',
+  card:    '#111d35',
+  border:  '#1e2d47',
+  accent:  '#00c9a7',
+  accentDark: '#009d83',
+  text:    '#f0f4ff',
+  muted:   '#5a7a9a',
+  green:   '#22c55e',
+  blue:    '#3b82f6',
+  red:     '#ef4444',
+  purple:  '#a78bfa',
 }
 
+const Logo = ({ size = 32 }) => (
+  <svg width={size} height={size} viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="52" height="52" rx="12" fill="#00c9a7" fillOpacity="0.15"/>
+    <path d="M26 10L8 24H13V42H39V24H44L26 10Z" stroke="#00c9a7" strokeWidth="2.2" strokeLinejoin="round" fill="none"/>
+    <rect x="20" y="27" width="12" height="10" rx="2" stroke="#00c9a7" strokeWidth="1.8" fill="none"/>
+    <circle cx="26" cy="35.5" r="0.9" fill="#00c9a7"/>
+  </svg>
+)
+
 const USERS = [
-  { id: 1, name: 'James Hartley', email: 'admin@pocketbuilder.co.uk', role: 'admin' },
-  { id: 2, name: 'Sarah Mitchell', email: 'builder@pocketbuilder.co.uk', role: 'builder' },
-  { id: 3, name: 'Mr & Mrs Johnson', email: 'client@pocketbuilder.co.uk', role: 'client' },
+  { id: 1, name: 'James Hartley',   email: 'admin@pocketbuilder.co',   role: 'admin'   },
+  { id: 2, name: 'Sarah Mitchell',  email: 'builder@pocketbuilder.co', role: 'builder' },
+  { id: 3, name: 'Mr & Mrs Johnson',email: 'client@pocketbuilder.co',  role: 'client'  },
 ]
 
 const PHASE_STATUSES = ['Not Started', 'In Progress', 'Complete', 'On Hold']
 const STATUS_COLORS = {
-  'Not Started': S.muted, 'In Progress': S.blue,
-  'Complete': S.green, 'On Hold': S.accent
+  'Not Started': S.muted,
+  'In Progress': S.blue,
+  'Complete':    S.green,
+  'On Hold':     '#f59e0b',
 }
 
 const INITIAL_PROJECT = {
@@ -29,14 +49,14 @@ const INITIAL_PROJECT = {
   budget: '285000',
   changeRequests: [],
   phases: [
-    { id: 1, name: 'Groundworks', start: '2025-05-01', end: '2025-05-28', status: 'Complete', milestones: [] },
-    { id: 2, name: 'Structure', start: '2025-06-01', end: '2025-07-31', status: 'In Progress', milestones: [
+    { id: 1, name: 'Groundworks', start: '2025-05-01', end: '2025-05-28', status: 'Complete',    milestones: [] },
+    { id: 2, name: 'Structure',   start: '2025-06-01', end: '2025-07-31', status: 'In Progress', milestones: [
       { id: 1, text: 'Structural engineer sign-off needed', resolved: false, replies: [] }
     ]},
-    { id: 3, name: 'Roofing', start: '2025-08-01', end: '2025-08-20', status: 'Not Started', milestones: [] },
-    { id: 4, name: 'First Fix', start: '2025-09-01', end: '2025-09-30', status: 'Not Started', milestones: [] },
+    { id: 3, name: 'Roofing',    start: '2025-08-01', end: '2025-08-20', status: 'Not Started', milestones: [] },
+    { id: 4, name: 'First Fix',  start: '2025-09-01', end: '2025-09-30', status: 'Not Started', milestones: [] },
     { id: 5, name: 'Second Fix', start: '2025-10-01', end: '2025-10-31', status: 'Not Started', milestones: [] },
-    { id: 6, name: 'Finishing', start: '2025-11-01', end: '2025-11-28', status: 'Not Started', milestones: [] },
+    { id: 6, name: 'Finishing',  start: '2025-11-01', end: '2025-11-28', status: 'Not Started', milestones: [] },
   ],
   unavailable: [],
 }
@@ -52,15 +72,15 @@ const INITIAL_CLIENT = {
 }
 
 const INITIAL_MESSAGES = [
-  { id: 1, from: 'builder', fromName: 'Sarah Mitchell', text: 'Site start confirmed for Monday 5th May, 7:30am.', ts: '2025-04-28T09:14:00' },
-  { id: 2, from: 'client', fromName: 'Mr Johnson', text: 'Great — will there be parking for the team?', ts: '2025-04-28T10:02:00' },
-  { id: 3, from: 'builder', fromName: 'Sarah Mitchell', text: "Yes, use the front drive. I'll send the site rules today.", ts: '2025-04-28T10:15:00' },
+  { id: 1, from: 'builder', fromName: 'Sarah Mitchell',  text: 'Site start confirmed for Monday 5th May, 7:30am.', ts: '2025-04-28T09:14:00' },
+  { id: 2, from: 'client',  fromName: 'Mr Johnson',      text: 'Great — will there be parking for the team?',     ts: '2025-04-28T10:02:00' },
+  { id: 3, from: 'builder', fromName: 'Sarah Mitchell',  text: "Yes, use the front drive. I'll send the site rules today.", ts: '2025-04-28T10:15:00' },
 ]
 
 const INITIAL_DOCS = [
-  { id: 1, name: 'Planning Permission.pdf', uploadedBy: 'builder', uploaderName: 'Sarah Mitchell', date: '2025-01-15', size: '2.4 MB' },
-  { id: 2, name: 'Architectural Drawings Rev C.pdf', uploadedBy: 'builder', uploaderName: 'Sarah Mitchell', date: '2025-02-20', size: '8.7 MB' },
-  { id: 3, name: 'Structural Calculations.pdf', uploadedBy: 'client', uploaderName: 'Mr & Mrs Johnson', date: '2025-03-05', size: '3.2 MB' },
+  { id: 1, name: 'Planning Permission.pdf',        uploadedBy: 'builder', uploaderName: 'Sarah Mitchell',   date: '2025-01-15', size: '2.4 MB' },
+  { id: 2, name: 'Architectural Drawings Rev C.pdf',uploadedBy: 'builder', uploaderName: 'Sarah Mitchell',   date: '2025-02-20', size: '8.7 MB' },
+  { id: 3, name: 'Structural Calculations.pdf',    uploadedBy: 'client',  uploaderName: 'Mr & Mrs Johnson', date: '2025-03-05', size: '3.2 MB' },
 ]
 
 const Ctx = createContext(null)
@@ -83,10 +103,7 @@ function AppProvider({ children }) {
 
   const sendMessage = (text) => {
     const role = user.role === 'client' ? 'client' : 'builder'
-    setMessages(m => [...m, {
-      id: Date.now(), from: role, fromName: user.name,
-      text, ts: new Date().toISOString()
-    }])
+    setMessages(m => [...m, { id: Date.now(), from: role, fromName: user.name, text, ts: new Date().toISOString() }])
   }
 
   const addDoc = (file) => {
@@ -97,7 +114,6 @@ function AppProvider({ children }) {
       size: (file.size / 1024 / 1024).toFixed(1) + ' MB'
     }])
   }
-
   const deleteDoc = (id) => setDocs(d => d.filter(x => x.id !== id))
 
   const addPhase = (phase) => setProject(p => ({ ...p, phases: [...p.phases, { ...phase, id: Date.now(), milestones: [] }] }))
@@ -146,7 +162,7 @@ function AppProvider({ children }) {
     </Ctx.Provider>
   )
 }
-// ── UI primitives ──────────────────────────────────────────────
+
 const Card = ({ children, style: s = {} }) => (
   <div style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: 10, padding: 18, ...s }}>{children}</div>
 )
@@ -155,7 +171,7 @@ const Btn = ({ children, onClick, variant = 'ghost', small, disabled, style: s =
   <button onClick={onClick} disabled={disabled} style={{
     padding: small ? '4px 10px' : '8px 18px',
     background: variant === 'primary' ? S.accent : variant === 'danger' ? '#ef444422' : S.surface,
-    color: variant === 'primary' ? '#0b0e16' : variant === 'danger' ? S.red : S.text,
+    color: variant === 'primary' ? '#0a0f1e' : variant === 'danger' ? S.red : S.text,
     border: `1px solid ${variant === 'primary' ? S.accent : variant === 'danger' ? '#ef444466' : S.border}`,
     borderRadius: 8, fontWeight: 700, fontSize: small ? 11 : 13,
     cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.5 : 1,
@@ -186,7 +202,7 @@ const SectionHead = ({ children, color = S.accent, action }) => (
 )
 
 const Modal = ({ title, onClose, children }) => (
-  <div style={{ position: 'fixed', inset: 0, background: '#000b', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={onClose}>
+  <div style={{ position: 'fixed', inset: 0, background: '#000c', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }} onClick={onClose}>
     <div onClick={e => e.stopPropagation()} style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: 14, width: '100%', maxWidth: 500, padding: 24, maxHeight: '90vh', overflowY: 'auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <span style={{ fontWeight: 800, fontSize: 16, color: S.text }}>{title}</span>
@@ -196,8 +212,6 @@ const Modal = ({ title, onClose, children }) => (
     </div>
   </div>
 )
-
-// ── Login ──────────────────────────────────────────────────────
 function LoginPage() {
   const { login, setPage } = useApp()
   const [email, setEmail] = useState('')
@@ -211,7 +225,7 @@ function LoginPage() {
     <div style={{ minHeight: '100vh', background: S.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, fontFamily: "'DM Sans','Segoe UI',sans-serif" }}>
       <div style={{ width: '100%', maxWidth: 400 }}>
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div style={{ width: 52, height: 52, background: S.accent, borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, margin: '0 auto 12px' }}>🏗</div>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 14 }}><Logo size={56} /></div>
           <div style={{ fontSize: 24, fontWeight: 900, color: S.text, letterSpacing: '-0.02em' }}>Pocket Builder</div>
           <div style={{ fontSize: 13, color: S.muted, marginTop: 4 }}>Construction management in your pocket</div>
         </div>
@@ -242,25 +256,26 @@ function LoginPage() {
     </div>
   )
 }
-// ── Marketing page ─────────────────────────────────────────────
+
 function MarketingPage() {
   const { setPage } = useApp()
 
   return (
     <div style={{ background: S.bg, minHeight: '100vh', fontFamily: "'DM Sans','Segoe UI',sans-serif", color: S.text }}>
-      {/* Nav */}
-      <nav style={{ position: 'sticky', top: 0, zIndex: 100, background: S.bg + 'f0', borderBottom: `1px solid ${S.border}`, padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 60 }}>
+      <nav style={{ position: 'sticky', top: 0, zIndex: 100, background: S.bg + 'f0', borderBottom: `1px solid ${S.border}`, padding: '0 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 62 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 32, height: 32, background: S.accent, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>🏗</div>
-          <span style={{ fontWeight: 900, fontSize: 18, letterSpacing: '-0.02em' }}>Pocket Builder</span>
+          <Logo size={34} />
+          <div>
+            <div style={{ fontWeight: 900, fontSize: 16, letterSpacing: '-0.02em', color: S.text, lineHeight: 1 }}>Pocket Builder</div>
+            <div style={{ fontSize: 10, color: S.accent, lineHeight: 1, marginTop: 2 }}>Construction management</div>
+          </div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button onClick={() => setPage('login')} style={{ padding: '7px 16px', background: S.surface, color: S.text, border: `1px solid ${S.border}`, borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Sign In</button>
-          <button onClick={() => setPage('login')} style={{ padding: '7px 16px', background: S.accent, color: '#0b0e16', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Get Started Free</button>
+          <button onClick={() => setPage('login')} style={{ padding: '7px 16px', background: S.accent, color: S.bg, border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Get Started Free</button>
         </div>
       </nav>
 
-      {/* Hero */}
       <section style={{ padding: '90px 24px 70px', textAlign: 'center', maxWidth: 740, margin: '0 auto' }}>
         <div style={{ display: 'inline-block', fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: S.accent, background: S.accent + '18', border: `1px solid ${S.accent}44`, borderRadius: 20, padding: '4px 14px', marginBottom: 24 }}>Built for UK builders & clients</div>
         <h1 style={{ fontSize: 48, fontWeight: 900, letterSpacing: '-0.04em', lineHeight: 1.1, margin: '0 0 20px', color: S.text }}>
@@ -270,34 +285,33 @@ function MarketingPage() {
           Project timelines, documents, milestones and messaging — all in one place for builders and their clients.
         </p>
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-          <button onClick={() => setPage('login')} style={{ padding: '13px 28px', background: S.accent, color: '#0b0e16', border: 'none', borderRadius: 10, fontWeight: 800, fontSize: 15, cursor: 'pointer' }}>Start free trial →</button>
+          <button onClick={() => setPage('login')} style={{ padding: '13px 28px', background: S.accent, color: S.bg, border: 'none', borderRadius: 10, fontWeight: 800, fontSize: 15, cursor: 'pointer' }}>Start free trial →</button>
           <button onClick={() => setPage('login')} style={{ padding: '13px 28px', background: S.surface, color: S.text, border: `1px solid ${S.border}`, borderRadius: 10, fontWeight: 700, fontSize: 15, cursor: 'pointer' }}>View demo</button>
         </div>
         <div style={{ marginTop: 16, fontSize: 12, color: S.muted }}>No credit card required · 14-day free trial</div>
       </section>
 
-      {/* Mock app screenshot */}
       <section style={{ maxWidth: 860, margin: '0 auto 80px', padding: '0 24px' }}>
         <div style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: 16, overflow: 'hidden' }}>
           <div style={{ background: S.surface, padding: '10px 16px', display: 'flex', gap: 6, alignItems: 'center', borderBottom: `1px solid ${S.border}` }}>
-            {['#ef4444','#f59e0b','#22c55e'].map(c => <div key={c} style={{ width: 12, height: 12, borderRadius: '50%', background: c }} />)}
-            <div style={{ flex: 1, background: S.card, borderRadius: 6, height: 22, marginLeft: 8 }} />
+            {['#ef4444','#f59e0b','#22c55e'].map(c => <div key={c} style={{ width: 11, height: 11, borderRadius: '50%', background: c }} />)}
+            <div style={{ flex: 1, background: S.card, borderRadius: 6, height: 20, marginLeft: 8 }} />
           </div>
           <div style={{ padding: 20 }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 16 }}>
-              {[['Project', '4 Bed Detached', S.accent], ['Progress', '33% complete', S.green], ['Budget', '£285,000', S.blue]].map(([l, v, c]) => (
+              {[['Project','4 Bed Detached', S.accent],['Progress','33% complete', S.green],['Budget','£285,000', S.blue]].map(([l,v,c]) => (
                 <div key={l} style={{ background: S.surface, borderRadius: 8, padding: '12px 14px' }}>
                   <div style={{ fontSize: 10, color: S.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>{l}</div>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: c }}>{v}</div>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: c }}>{v}</div>
                 </div>
               ))}
             </div>
             <div style={{ background: S.surface, borderRadius: 8, padding: 14 }}>
-              <div style={{ fontSize: 11, color: S.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Project Timeline</div>
-              {[['Groundworks', S.green, '100%'], ['Structure', S.blue, '45%'], ['Roofing', S.muted, '0%']].map(([name, color, pct]) => (
+              <div style={{ fontSize: 11, color: S.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Project timeline</div>
+              {[['Groundworks', S.green, '100%'],['Structure', S.blue, '45%'],['Roofing', S.muted, '0%']].map(([name, color, pct]) => (
                 <div key={name} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
                   <div style={{ width: 80, fontSize: 12, color: S.muted }}>{name}</div>
-                  <div style={{ flex: 1, height: 8, background: S.card, borderRadius: 4, overflow: 'hidden' }}>
+                  <div style={{ flex: 1, height: 7, background: S.card, borderRadius: 4, overflow: 'hidden' }}>
                     <div style={{ width: pct, height: '100%', background: color, borderRadius: 4 }} />
                   </div>
                   <div style={{ fontSize: 11, color, width: 32, textAlign: 'right' }}>{pct}</div>
@@ -308,20 +322,19 @@ function MarketingPage() {
         </div>
       </section>
 
-      {/* Features */}
       <section style={{ padding: '0 24px 80px', maxWidth: 1000, margin: '0 auto' }}>
         <h2 style={{ fontSize: 32, fontWeight: 900, textAlign: 'center', marginBottom: 40, color: S.text, letterSpacing: '-0.02em' }}>Everything you need</h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
           {[
-            ['📅', 'Phase timeline', 'Visual Gantt-style timeline with milestones, decision flags and unavailability blocks.'],
-            ['📁', 'Documents', 'Builder and client both upload. Everyone views. Only the uploader can delete.'],
-            ['💬', 'Messenger', 'Direct messaging between builder and client. Admin can view the full thread.'],
-            ['🔐', 'Role-based access', 'Admin, builder and client each see and edit only what is relevant to them.'],
-            ['📋', 'Change requests', 'Log and track changes to scope with status updates visible to both parties.'],
-            ['👤', 'Contact details', 'Builder and client each manage their own contact information.'],
-          ].map(([ic, ti, de]) => (
+            ['📅','Phase timeline','Visual Gantt-style timeline with milestones, decision flags and unavailability blocks.'],
+            ['📁','Documents','Builder and client both upload. Everyone views. Only the uploader can delete.'],
+            ['💬','Messenger','Direct messaging between builder and client. Admin can view the full thread.'],
+            ['🔐','Role-based access','Admin, builder and client each see and edit only what is relevant to them.'],
+            ['📋','Change requests','Log and track changes to scope with status updates visible to both parties.'],
+            ['👤','Contact details','Builder and client each manage their own contact information.'],
+          ].map(([ic,ti,de]) => (
             <div key={ti} style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: 12, padding: '20px 18px' }}>
-              <div style={{ fontSize: 28, marginBottom: 10 }}>{ic}</div>
+              <div style={{ fontSize: 26, marginBottom: 10 }}>{ic}</div>
               <div style={{ fontWeight: 800, fontSize: 14, color: S.text, marginBottom: 6 }}>{ti}</div>
               <div style={{ fontSize: 12, color: S.muted, lineHeight: 1.6 }}>{de}</div>
             </div>
@@ -329,18 +342,17 @@ function MarketingPage() {
         </div>
       </section>
 
-      {/* Pricing */}
       <section style={{ padding: '70px 24px', background: S.surface, borderTop: `1px solid ${S.border}`, borderBottom: `1px solid ${S.border}` }}>
         <div style={{ maxWidth: 800, margin: '0 auto' }}>
           <h2 style={{ fontSize: 32, fontWeight: 900, textAlign: 'center', marginBottom: 10, color: S.text, letterSpacing: '-0.02em' }}>Simple pricing</h2>
           <p style={{ textAlign: 'center', color: S.muted, marginBottom: 40, fontSize: 15 }}>A flat monthly fee for builders, plus a small per-project fee. Clients always access free.</p>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
             {[
-              { name: 'Builder', price: '£29', period: '/month', color: S.accent, features: ['Unlimited projects', 'Client portal included', 'Document storage', 'Messaging', 'Timeline & milestones', 'Priority support'], cta: 'Start free trial', popular: true },
-              { name: 'Per project', price: '£9', period: '/project', color: S.blue, features: ['Pay as you go', 'No monthly commitment', 'Full feature access', 'Client portal included', 'Document storage', 'Messaging'], cta: 'Start free trial', popular: false },
+              { name: 'Builder', price: '£29', period: '/month', color: S.accent, features: ['Unlimited projects','Client portal included','Document storage','Messaging','Timeline & milestones','Priority support'], cta: 'Start free trial', popular: true },
+              { name: 'Per project', price: '£9', period: '/project', color: S.blue, features: ['Pay as you go','No monthly commitment','Full feature access','Client portal included','Document storage','Messaging'], cta: 'Start free trial', popular: false },
             ].map(plan => (
               <div key={plan.name} style={{ background: S.card, border: `2px solid ${plan.popular ? plan.color : S.border}`, borderRadius: 14, padding: 26, position: 'relative' }}>
-                {plan.popular && <div style={{ position: 'absolute', top: -13, left: '50%', transform: 'translateX(-50%)', background: plan.color, color: '#0b0e16', fontSize: 10, fontWeight: 800, padding: '4px 14px', borderRadius: 20, whiteSpace: 'nowrap' }}>MOST POPULAR</div>}
+                {plan.popular && <div style={{ position: 'absolute', top: -13, left: '50%', transform: 'translateX(-50%)', background: plan.color, color: S.bg, fontSize: 10, fontWeight: 800, padding: '4px 14px', borderRadius: 20, whiteSpace: 'nowrap' }}>MOST POPULAR</div>}
                 <div style={{ fontSize: 13, fontWeight: 700, color: plan.color, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>{plan.name}</div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 20 }}>
                   <span style={{ fontSize: 40, fontWeight: 900, color: S.text, fontFamily: 'monospace' }}>{plan.price}</span>
@@ -354,7 +366,7 @@ function MarketingPage() {
                     </div>
                   ))}
                 </div>
-                <button onClick={() => setPage('login')} style={{ width: '100%', padding: '10px 0', background: plan.popular ? plan.color : S.surface, color: plan.popular ? '#0b0e16' : S.text, border: `1px solid ${plan.popular ? plan.color : S.border}`, borderRadius: 8, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>{plan.cta}</button>
+                <button onClick={() => setPage('login')} style={{ width: '100%', padding: '10px 0', background: plan.popular ? plan.color : S.surface, color: plan.popular ? S.bg : S.text, border: `1px solid ${plan.popular ? plan.color : S.border}`, borderRadius: 8, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>{plan.cta}</button>
               </div>
             ))}
           </div>
@@ -362,15 +374,14 @@ function MarketingPage() {
         </div>
       </section>
 
-      {/* T&Cs */}
       <section style={{ padding: '70px 24px', maxWidth: 720, margin: '0 auto' }}>
         <h2 style={{ fontSize: 28, fontWeight: 900, color: S.text, marginBottom: 24, letterSpacing: '-0.02em' }}>Terms & conditions</h2>
         {[
-          ['1. Service', 'Pocket Builder provides SaaS project management software for construction professionals, accessible on a subscription basis.'],
-          ['2. Subscriptions', 'Billed monthly or per project. Cancel at any time — cancellation takes effect at the end of the current billing period.'],
-          ['3. Your data', 'Your project data belongs to you. We do not sell or share it with third parties. Data is stored securely on UK-based servers.'],
-          ['4. Liability', 'Pocket Builder is a management tool only. We accept no responsibility for construction decisions, cost overruns, or disputes between builders and clients.'],
-          ['5. Governing law', 'These terms are governed by English law. Disputes are subject to the exclusive jurisdiction of the courts of England and Wales.'],
+          ['1. Service','Pocket Builder provides SaaS project management software for construction professionals, accessible on a subscription basis.'],
+          ['2. Subscriptions','Billed monthly or per project. Cancel at any time — cancellation takes effect at the end of the current billing period.'],
+          ['3. Your data','Your project data belongs to you. We do not sell or share it with third parties. Data is stored securely on UK-based servers.'],
+          ['4. Liability','Pocket Builder is a management tool only. We accept no responsibility for construction decisions, cost overruns, or disputes between builders and clients.'],
+          ['5. Governing law','These terms are governed by English law. Disputes are subject to the exclusive jurisdiction of the courts of England and Wales.'],
         ].map(([title, text]) => (
           <div key={title} style={{ marginBottom: 20, paddingBottom: 20, borderBottom: `1px solid ${S.border}` }}>
             <div style={{ fontWeight: 800, color: S.text, marginBottom: 6, fontSize: 14 }}>{title}</div>
@@ -379,10 +390,9 @@ function MarketingPage() {
         ))}
       </section>
 
-      {/* Footer */}
       <footer style={{ borderTop: `1px solid ${S.border}`, padding: '24px', textAlign: 'center' }}>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
-          <div style={{ width: 24, height: 24, background: S.accent, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12 }}>🏗</div>
+          <Logo size={24} />
           <span style={{ fontWeight: 900, color: S.text }}>Pocket Builder</span>
         </div>
         <div style={{ fontSize: 12, color: S.muted }}>© {new Date().getFullYear()} Pocket Builder Ltd · Registered in England & Wales</div>
@@ -390,16 +400,13 @@ function MarketingPage() {
     </div>
   )
 }
-// ── Project Details view ───────────────────────────────────────
 function ProjectView() {
   const { user, project, setProject, addPhase, updatePhase, deletePhase, addChangeRequest, updateChangeRequest } = useApp()
-  const canEdit = user.role === 'admin' || user.role === 'builder' || user.role === 'client'
   const isBuilder = user.role === 'builder' || user.role === 'admin'
   const [showPhaseModal, setShowPhaseModal] = useState(false)
   const [showCRModal, setShowCRModal] = useState(false)
   const [newPhase, setNewPhase] = useState({ name: '', start: '', end: '', status: 'Not Started' })
   const [newCR, setNewCR] = useState('')
-
   const set = (k, v) => setProject(p => ({ ...p, [k]: v }))
 
   return (
@@ -407,11 +414,11 @@ function ProjectView() {
       <Card style={{ marginBottom: 16 }}>
         <SectionHead>Project details</SectionHead>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
-          <Input label="Project name" value={project.name} onChange={v => set('name', v)} readOnly={!canEdit} />
-          <Input label="Site address" value={project.address} onChange={v => set('address', v)} readOnly={!canEdit} />
-          <Input label="Start date" type="date" value={project.startDate} onChange={v => set('startDate', v)} readOnly={!canEdit} />
-          <Input label="End date" type="date" value={project.endDate} onChange={v => set('endDate', v)} readOnly={!canEdit} />
-          <Input label="Agreed budget (£)" value={project.budget} onChange={v => set('budget', v)} readOnly={!canEdit} />
+          <Input label="Project name"    value={project.name}      onChange={v => set('name', v)} />
+          <Input label="Site address"    value={project.address}   onChange={v => set('address', v)} />
+          <Input label="Start date"      value={project.startDate} onChange={v => set('startDate', v)} type="date" />
+          <Input label="End date"        value={project.endDate}   onChange={v => set('endDate', v)}   type="date" />
+          <Input label="Agreed budget (£)" value={project.budget}  onChange={v => set('budget', v)} />
         </div>
       </Card>
 
@@ -448,7 +455,7 @@ function ProjectView() {
                 <div style={{ fontSize: 13, color: S.text }}>{cr.text}</div>
                 <div style={{ fontSize: 11, color: S.muted, marginTop: 2 }}>Raised by {cr.by} on {cr.date}</div>
               </div>
-              <Tag color={cr.status === 'Approved' ? S.green : cr.status === 'Rejected' ? S.red : S.accent}>{cr.status}</Tag>
+              <Tag color={cr.status === 'Approved' ? S.green : cr.status === 'Rejected' ? S.red : '#f59e0b'}>{cr.status}</Tag>
               {isBuilder && cr.status === 'Pending' && (
                 <div style={{ display: 'flex', gap: 6 }}>
                   <Btn small onClick={() => updateChangeRequest(cr.id, 'Approved')}>Approve</Btn>
@@ -462,11 +469,11 @@ function ProjectView() {
 
       {showPhaseModal && (
         <Modal title="Add phase" onClose={() => setShowPhaseModal(false)}>
-          <Input label="Phase name" value={newPhase.name} onChange={v => setNewPhase(p => ({ ...p, name: v }))} />
-          <Input label="Start date" type="date" value={newPhase.start} onChange={v => setNewPhase(p => ({ ...p, start: v }))} />
-          <Input label="End date" type="date" value={newPhase.end} onChange={v => setNewPhase(p => ({ ...p, end: v }))} />
-          <Btn variant="primary" onClick={() => { addPhase(newPhase); setNewPhase({ name: '', start: '', end: '', status: 'Not Started' }); setShowPhaseModal(false) }}
-            disabled={!newPhase.name || !newPhase.start || !newPhase.end} style={{ width: '100%', marginTop: 8 }}>
+          <Input label="Phase name" value={newPhase.name}  onChange={v => setNewPhase(p => ({ ...p, name: v }))} />
+          <Input label="Start date" value={newPhase.start} onChange={v => setNewPhase(p => ({ ...p, start: v }))} type="date" />
+          <Input label="End date"   value={newPhase.end}   onChange={v => setNewPhase(p => ({ ...p, end: v }))}   type="date" />
+          <Btn variant="primary" disabled={!newPhase.name || !newPhase.start || !newPhase.end} style={{ width: '100%', marginTop: 8 }}
+            onClick={() => { addPhase(newPhase); setNewPhase({ name: '', start: '', end: '', status: 'Not Started' }); setShowPhaseModal(false) }}>
             Add phase
           </Btn>
         </Modal>
@@ -475,8 +482,8 @@ function ProjectView() {
       {showCRModal && (
         <Modal title="Add change request" onClose={() => setShowCRModal(false)}>
           <Input label="Describe the change" value={newCR} onChange={setNewCR} placeholder="e.g. Add bi-fold doors to rear elevation" />
-          <Btn variant="primary" onClick={() => { addChangeRequest(newCR); setNewCR(''); setShowCRModal(false) }}
-            disabled={!newCR} style={{ width: '100%', marginTop: 8 }}>
+          <Btn variant="primary" disabled={!newCR} style={{ width: '100%', marginTop: 8 }}
+            onClick={() => { addChangeRequest(newCR); setNewCR(''); setShowCRModal(false) }}>
             Submit request
           </Btn>
         </Modal>
@@ -485,7 +492,6 @@ function ProjectView() {
   )
 }
 
-// ── Builder & Client detail views ──────────────────────────────
 function BuilderView() {
   const { user, builder, setBuilder } = useApp()
   const canEdit = user.role === 'builder' || user.role === 'admin'
@@ -493,10 +499,10 @@ function BuilderView() {
     <Card>
       <SectionHead>Builder details</SectionHead>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
-        <Input label="Name" value={builder.name} onChange={v => setBuilder(b => ({ ...b, name: v }))} readOnly={!canEdit} />
+        <Input label="Name"    value={builder.name}    onChange={v => setBuilder(b => ({ ...b, name: v }))}    readOnly={!canEdit} />
         <Input label="Company" value={builder.company} onChange={v => setBuilder(b => ({ ...b, company: v }))} readOnly={!canEdit} />
-        <Input label="Phone" value={builder.phone} onChange={v => setBuilder(b => ({ ...b, phone: v }))} readOnly={!canEdit} />
-        <Input label="Email" value={builder.email} onChange={v => setBuilder(b => ({ ...b, email: v }))} readOnly={!canEdit} />
+        <Input label="Phone"   value={builder.phone}   onChange={v => setBuilder(b => ({ ...b, phone: v }))}   readOnly={!canEdit} />
+        <Input label="Email"   value={builder.email}   onChange={v => setBuilder(b => ({ ...b, email: v }))}   readOnly={!canEdit} />
         <Input label="Address" value={builder.address} onChange={v => setBuilder(b => ({ ...b, address: v }))} readOnly={!canEdit} />
       </div>
     </Card>
@@ -510,15 +516,14 @@ function ClientView() {
     <Card>
       <SectionHead>Client details</SectionHead>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
-        <Input label="Name" value={client.name} onChange={v => setClient(c => ({ ...c, name: v }))} readOnly={!canEdit} />
-        <Input label="Phone" value={client.phone} onChange={v => setClient(c => ({ ...c, phone: v }))} readOnly={!canEdit} />
-        <Input label="Email" value={client.email} onChange={v => setClient(c => ({ ...c, email: v }))} readOnly={!canEdit} />
+        <Input label="Name"    value={client.name}    onChange={v => setClient(c => ({ ...c, name: v }))}    readOnly={!canEdit} />
+        <Input label="Phone"   value={client.phone}   onChange={v => setClient(c => ({ ...c, phone: v }))}   readOnly={!canEdit} />
+        <Input label="Email"   value={client.email}   onChange={v => setClient(c => ({ ...c, email: v }))}   readOnly={!canEdit} />
         <Input label="Address" value={client.address} onChange={v => setClient(c => ({ ...c, address: v }))} readOnly={!canEdit} />
       </div>
     </Card>
   )
 }
-// ── Timeline view ──────────────────────────────────────────────
 function TimelineView() {
   const { user, project, addMilestone, replyMilestone, resolveMilestone, addUnavailable, deleteUnavailable } = useApp()
   const isBuilder = user.role === 'builder' || user.role === 'admin'
@@ -530,10 +535,9 @@ function TimelineView() {
 
   const start = new Date(project.startDate)
   const end = new Date(project.endDate)
-  const totalDays = (end - start) / (1000 * 60 * 60 * 24)
-
   const getLeft = d => Math.max(0, (new Date(d) - start) / (end - start) * 100)
   const getWidth = (s, e) => Math.min(100 - getLeft(s), Math.max(1, (new Date(e) - new Date(s)) / (end - start) * 100))
+  const todayPct = Math.min(100, Math.max(0, (new Date() - start) / (end - start) * 100))
 
   const months = []
   let d = new Date(start.getFullYear(), start.getMonth(), 1)
@@ -542,83 +546,59 @@ function TimelineView() {
     d = new Date(d.getFullYear(), d.getMonth() + 1, 1)
   }
 
-  const todayPct = Math.min(100, Math.max(0, (new Date() - start) / (end - start) * 100))
-
   return (
     <div>
-      {/* Gantt chart */}
       <Card style={{ marginBottom: 16, overflowX: 'auto' }}>
         <SectionHead action={<Btn small onClick={() => setShowUnavModal(true)}>+ Not available</Btn>}>Project timeline</SectionHead>
         <div style={{ minWidth: 500 }}>
-          {/* Month labels */}
           <div style={{ position: 'relative', height: 20, marginLeft: 120, marginBottom: 8 }}>
             {months.map((m, i) => (
               <div key={i} style={{ position: 'absolute', left: `${m.pct}%`, fontSize: 10, color: S.muted, transform: 'translateX(-50%)', whiteSpace: 'nowrap' }}>{m.label}</div>
             ))}
           </div>
-
-          {/* Phase bars */}
           {project.phases.map(ph => (
             <div key={ph.id} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
               <div style={{ width: 112, fontSize: 11, color: S.muted, fontWeight: 600, textAlign: 'right', flexShrink: 0 }}>{ph.name}</div>
-              <div style={{ flex: 1, position: 'relative', height: 28, background: S.surface, borderRadius: 6, cursor: 'pointer' }} onClick={() => setSelectedPhase(selectedPhase?.id === ph.id ? null : ph)}>
-                {/* Unavailability blocks */}
+              <div style={{ flex: 1, position: 'relative', height: 28, background: S.surface, borderRadius: 6, cursor: 'pointer' }}
+                onClick={() => setSelectedPhase(selectedPhase?.id === ph.id ? null : ph)}>
                 {project.unavailable.map(u => (
-                  <div key={u.id} style={{ position: 'absolute', left: `${getLeft(u.start)}%`, width: `${getWidth(u.start, u.end)}%`, top: 0, height: '100%', background: '#ef444418', borderLeft: '2px dashed #ef444466', zIndex: 1 }} />
+                  <div key={u.id} style={{ position: 'absolute', left: `${getLeft(u.start)}%`, width: `${getWidth(u.start, u.end)}%`, top: 0, height: '100%', background: '#ef444415', borderLeft: '2px dashed #ef444455', zIndex: 1 }} />
                 ))}
-                {/* Phase bar */}
                 {ph.start && ph.end && (
-                  <div style={{ position: 'absolute', left: `${getLeft(ph.start)}%`, width: `${getWidth(ph.start, ph.end)}%`, top: 4, height: 20, background: STATUS_COLORS[ph.status] + '44', border: `1px solid ${STATUS_COLORS[ph.status]}88`, borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2 }}>
+                  <div style={{ position: 'absolute', left: `${getLeft(ph.start)}%`, width: `${getWidth(ph.start, ph.end)}%`, top: 4, height: 20, background: STATUS_COLORS[ph.status] + '33', border: `1px solid ${STATUS_COLORS[ph.status]}77`, borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2 }}>
                     <span style={{ fontSize: 9, color: STATUS_COLORS[ph.status], fontWeight: 800 }}>{ph.status}</span>
                   </div>
                 )}
-                {/* Milestone diamonds */}
                 {ph.milestones.map((ms, i) => (
-                  <div key={ms.id} style={{ position: 'absolute', left: `${getLeft(ph.end)}%`, top: '50%', transform: 'translate(-50%, -50%) rotate(45deg)', width: 10, height: 10, background: ms.resolved ? S.green : S.accent, zIndex: 3, marginLeft: i * 14 }} />
+                  <div key={ms.id} style={{ position: 'absolute', left: `${getLeft(ph.end)}%`, top: '50%', transform: 'translate(-50%,-50%) rotate(45deg)', width: 10, height: 10, background: ms.resolved ? S.green : S.accent, zIndex: 3, marginLeft: i * 14 }} />
                 ))}
-                {/* Today line */}
-                <div style={{ position: 'absolute', left: `${todayPct}%`, top: 0, width: 2, height: '100%', background: S.accent, opacity: 0.7, zIndex: 4 }} />
+                <div style={{ position: 'absolute', left: `${todayPct}%`, top: 0, width: 2, height: '100%', background: S.accent, opacity: 0.6, zIndex: 4 }} />
               </div>
             </div>
           ))}
-
-          {/* Today label */}
           <div style={{ position: 'relative', marginLeft: 120, height: 16 }}>
             <div style={{ position: 'absolute', left: `${todayPct}%`, transform: 'translateX(-50%)', fontSize: 9, color: S.accent, fontWeight: 800 }}>TODAY</div>
           </div>
         </div>
       </Card>
 
-      {/* Selected phase detail */}
       {selectedPhase && (
         <Card style={{ marginBottom: 16 }}>
-          <SectionHead color={STATUS_COLORS[selectedPhase.status]} action={
-            isBuilder && (
-              <Btn small onClick={() => {
-                if (newMilestone.trim()) {
-                  addMilestone(selectedPhase.id, newMilestone.trim())
-                  setNewMilestone('')
-                  setSelectedPhase(p => project.phases.find(ph => ph.id === p.id))
-                }
-              }}>+ Add milestone</Btn>
-            )
-          }>{selectedPhase.name} — milestones</SectionHead>
-
+          <SectionHead color={STATUS_COLORS[selectedPhase.status]}
+            action={isBuilder && <Btn small onClick={() => { if (newMilestone.trim()) { addMilestone(selectedPhase.id, newMilestone.trim()); setNewMilestone('') }}}>+ Add milestone</Btn>}>
+            {selectedPhase.name} — milestones
+          </SectionHead>
           {isBuilder && (
             <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-              <input value={newMilestone} onChange={e => setNewMilestone(e.target.value)} placeholder="e.g. Kitchen tile choice needed"
+              <input value={newMilestone} onChange={e => setNewMilestone(e.target.value)}
+                placeholder="e.g. Kitchen tile choice needed"
                 style={{ flex: 1, background: S.surface, border: `1px solid ${S.border}`, borderRadius: 8, padding: '7px 11px', color: S.text, fontSize: 13, outline: 'none' }} />
-              <Btn small variant="primary" onClick={() => {
-                if (newMilestone.trim()) {
-                  addMilestone(selectedPhase.id, newMilestone.trim())
-                  setNewMilestone('')
-                }
-              }}>Add</Btn>
+              <Btn small variant="primary" onClick={() => { if (newMilestone.trim()) { addMilestone(selectedPhase.id, newMilestone.trim()); setNewMilestone('') }}}>Add</Btn>
             </div>
           )}
-
-          {selectedPhase.milestones.length === 0 && <div style={{ color: S.muted, fontSize: 13 }}>No milestones for this phase yet.</div>}
-
+          {project.phases.find(ph => ph.id === selectedPhase.id)?.milestones.length === 0 && (
+            <div style={{ color: S.muted, fontSize: 13 }}>No milestones for this phase yet.</div>
+          )}
           {project.phases.find(ph => ph.id === selectedPhase.id)?.milestones.map(ms => (
             <div key={ms.id} style={{ background: S.surface, borderRadius: 8, padding: '12px 14px', marginBottom: 8, border: `1px solid ${ms.resolved ? S.green : S.accent}44` }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
@@ -626,14 +606,11 @@ function TimelineView() {
                   <span style={{ fontSize: 14 }}>{ms.resolved ? '✅' : '🔔'}</span>
                   <span style={{ fontSize: 13, color: S.text, fontWeight: 600 }}>{ms.text}</span>
                 </div>
-                <div style={{ display: 'flex', gap: 6 }}>
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                   <Tag color={ms.resolved ? S.green : S.accent}>{ms.resolved ? 'Resolved' : 'Decision needed'}</Tag>
-                  {isBuilder && !ms.resolved && (
-                    <Btn small onClick={() => resolveMilestone(selectedPhase.id, ms.id)}>Mark resolved</Btn>
-                  )}
+                  {isBuilder && !ms.resolved && <Btn small onClick={() => resolveMilestone(selectedPhase.id, ms.id)}>Mark resolved</Btn>}
                 </div>
               </div>
-              {/* Replies */}
               {ms.replies.map((r, i) => (
                 <div key={i} style={{ background: S.card, borderRadius: 6, padding: '7px 10px', marginBottom: 5, fontSize: 12 }}>
                   <span style={{ color: S.accent, fontWeight: 700 }}>{r.by}: </span>
@@ -643,12 +620,10 @@ function TimelineView() {
               {!ms.resolved && (
                 <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
                   <input value={replyText[ms.id] || ''} onChange={e => setReplyText(t => ({ ...t, [ms.id]: e.target.value }))}
-                    placeholder="Add a reply…" style={{ flex: 1, background: S.card, border: `1px solid ${S.border}`, borderRadius: 6, padding: '6px 10px', color: S.text, fontSize: 12, outline: 'none' }} />
+                    placeholder="Add a reply…"
+                    style={{ flex: 1, background: S.card, border: `1px solid ${S.border}`, borderRadius: 6, padding: '6px 10px', color: S.text, fontSize: 12, outline: 'none' }} />
                   <Btn small variant="primary" onClick={() => {
-                    if (replyText[ms.id]?.trim()) {
-                      replyMilestone(selectedPhase.id, ms.id, replyText[ms.id].trim())
-                      setReplyText(t => ({ ...t, [ms.id]: '' }))
-                    }
+                    if (replyText[ms.id]?.trim()) { replyMilestone(selectedPhase.id, ms.id, replyText[ms.id].trim()); setReplyText(t => ({ ...t, [ms.id]: '' })) }
                   }}>Reply</Btn>
                 </div>
               )}
@@ -657,7 +632,6 @@ function TimelineView() {
         </Card>
       )}
 
-      {/* Unavailability list */}
       <Card>
         <SectionHead>Not available periods</SectionHead>
         {project.unavailable.length === 0 && <div style={{ color: S.muted, fontSize: 13 }}>No unavailability logged yet.</div>}
@@ -677,8 +651,8 @@ function TimelineView() {
       {showUnavModal && (
         <Modal title="Add unavailable period" onClose={() => setShowUnavModal(false)}>
           <Input label="Description" value={newUnav.label} onChange={v => setNewUnav(u => ({ ...u, label: v }))} placeholder="e.g. Builder holiday" />
-          <Input label="Start date" type="date" value={newUnav.start} onChange={v => setNewUnav(u => ({ ...u, start: v }))} />
-          <Input label="End date" type="date" value={newUnav.end} onChange={v => setNewUnav(u => ({ ...u, end: v }))} />
+          <Input label="Start date"  value={newUnav.start} onChange={v => setNewUnav(u => ({ ...u, start: v }))} type="date" />
+          <Input label="End date"    value={newUnav.end}   onChange={v => setNewUnav(u => ({ ...u, end: v }))}   type="date" />
           <div style={{ marginBottom: 14 }}>
             <label style={{ display: 'block', fontSize: 11, color: S.muted, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 5 }}>Party</label>
             <select value={newUnav.party} onChange={e => setNewUnav(u => ({ ...u, party: e.target.value }))}
@@ -697,7 +671,6 @@ function TimelineView() {
     </div>
   )
 }
-// ── Documents view ─────────────────────────────────────────────
 function DocsView() {
   const { user, docs, addDoc, deleteDoc } = useApp()
   const fileRef = useRef(null)
@@ -732,7 +705,6 @@ function DocsView() {
   )
 }
 
-// ── Messenger view ─────────────────────────────────────────────
 function MessengerView() {
   const { user, messages, sendMessage } = useApp()
   const [text, setText] = useState('')
@@ -769,7 +741,7 @@ function MessengerView() {
               </div>
               <div style={{ maxWidth: '65%', display: 'flex', flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start', gap: 3 }}>
                 <div style={{ fontSize: 10, color: S.muted }}>{isMe ? 'You' : msg.fromName} · {fmtDate(msg.ts)} {fmtTime(msg.ts)}</div>
-                <div style={{ background: isMe ? S.accent : S.surface, color: isMe ? '#0b0e16' : S.text, border: `1px solid ${isMe ? S.accent : S.border}`, borderRadius: isMe ? '14px 14px 4px 14px' : '14px 14px 14px 4px', padding: '8px 12px', fontSize: 13, lineHeight: 1.5 }}>
+                <div style={{ background: isMe ? S.accent : S.surface, color: isMe ? S.bg : S.text, border: `1px solid ${isMe ? S.accent : S.border}`, borderRadius: isMe ? '14px 14px 4px 14px' : '14px 14px 14px 4px', padding: '8px 12px', fontSize: 13, lineHeight: 1.5 }}>
                   {msg.text}
                 </div>
               </div>
@@ -792,35 +764,34 @@ function MessengerView() {
     </div>
   )
 }
-// ── App shell ──────────────────────────────────────────────────
+
 function AppShell() {
   const { user, logout, project } = useApp()
   const [view, setView] = useState('project')
-
-  const isBuilder = user.role === 'builder' || user.role === 'admin'
-  const isClient = user.role === 'client'
   const roleColor = user.role === 'admin' ? S.purple : user.role === 'builder' ? S.accent : S.blue
 
   const NAV = [
-    { id: 'project', label: 'Project' },
-    { id: 'timeline', label: 'Timeline' },
+    { id: 'project',   label: 'Project'   },
+    { id: 'timeline',  label: 'Timeline'  },
     { id: 'documents', label: 'Documents' },
-    { id: 'messages', label: 'Messages' },
-    { id: 'builder', label: 'Builder' },
-    { id: 'client', label: 'Client' },
+    { id: 'messages',  label: 'Messages'  },
+    { id: 'builder',   label: 'Builder'   },
+    { id: 'client',    label: 'Client'    },
   ]
 
   return (
     <div style={{ minHeight: '100vh', background: S.bg, fontFamily: "'DM Sans','Segoe UI',sans-serif" }}>
-      {/* Header */}
-      <header style={{ background: '#0d1019', borderBottom: `1px solid ${S.border}`, padding: '0 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 54, position: 'sticky', top: 0, zIndex: 100 }}>
+      <header style={{ background: S.surface, borderBottom: `1px solid ${S.border}`, padding: '0 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 56, position: 'sticky', top: 0, zIndex: 100 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 30, height: 30, background: S.accent, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15 }}>🏗</div>
-          <span style={{ fontWeight: 900, fontSize: 15, color: S.text, letterSpacing: '-0.02em' }}>Pocket Builder</span>
+          <Logo size={30} />
+          <div>
+            <div style={{ fontWeight: 900, fontSize: 14, color: S.text, lineHeight: 1, letterSpacing: '-0.02em' }}>Pocket Builder</div>
+            <div style={{ fontSize: 9, color: S.accent, lineHeight: 1, marginTop: 2 }}>Construction management</div>
+          </div>
         </div>
         <nav style={{ display: 'flex', gap: 2 }}>
           {NAV.map(n => (
-            <button key={n.id} onClick={() => setView(n.id)} style={{ padding: '5px 12px', borderRadius: 7, fontWeight: 700, fontSize: 12, cursor: 'pointer', border: 'none', background: view === n.id ? S.accent : 'transparent', color: view === n.id ? '#0b0e16' : S.muted }}>
+            <button key={n.id} onClick={() => setView(n.id)} style={{ padding: '5px 12px', borderRadius: 7, fontWeight: 700, fontSize: 12, cursor: 'pointer', border: 'none', background: view === n.id ? S.accent : 'transparent', color: view === n.id ? S.bg : S.muted }}>
               {n.label}
             </button>
           ))}
@@ -830,12 +801,11 @@ function AppShell() {
             <div style={{ fontSize: 12, fontWeight: 700, color: S.text }}>{user.name}</div>
             <div style={{ fontSize: 10, color: roleColor, fontWeight: 700, textTransform: 'capitalize' }}>{user.role}</div>
           </div>
-          <button onClick={logout} style={{ padding: '4px 10px', background: S.surface, border: `1px solid ${S.border}`, borderRadius: 6, color: S.muted, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>Sign out</button>
+          <button onClick={logout} style={{ padding: '4px 10px', background: S.card, border: `1px solid ${S.border}`, borderRadius: 6, color: S.muted, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>Sign out</button>
         </div>
       </header>
 
-      {/* Project bar */}
-      <div style={{ background: '#0f1320', borderBottom: `1px solid ${S.border}`, padding: '10px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+      <div style={{ background: S.card, borderBottom: `1px solid ${S.border}`, padding: '10px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
         <div>
           <div style={{ fontSize: 16, fontWeight: 900, color: S.text }}>{project.name}</div>
           <div style={{ fontSize: 11, color: S.muted }}>{project.address}</div>
@@ -843,8 +813,8 @@ function AppShell() {
         <div style={{ display: 'flex', gap: 20 }}>
           {[
             ['Budget', `£${Number(project.budget).toLocaleString('en-GB')}`, S.accent],
-            ['Start', project.startDate, S.text],
-            ['End', project.endDate, S.text],
+            ['Start',  project.startDate, S.text],
+            ['End',    project.endDate,   S.text],
             ['Phases', project.phases.length, S.blue],
           ].map(([label, value, color]) => (
             <div key={label} style={{ textAlign: 'center' }}>
@@ -855,24 +825,22 @@ function AppShell() {
         </div>
       </div>
 
-      {/* Main content */}
       <main style={{ maxWidth: 960, margin: '0 auto', padding: '22px 20px' }}>
-        {view === 'project' && <ProjectView />}
-        {view === 'timeline' && <TimelineView />}
+        {view === 'project'   && <ProjectView />}
+        {view === 'timeline'  && <TimelineView />}
         {view === 'documents' && <DocsView />}
-        {view === 'messages' && <MessengerView />}
-        {view === 'builder' && <BuilderView />}
-        {view === 'client' && <ClientView />}
+        {view === 'messages'  && <MessengerView />}
+        {view === 'builder'   && <BuilderView />}
+        {view === 'client'    && <ClientView />}
       </main>
     </div>
   )
 }
 
-// ── Root ───────────────────────────────────────────────────────
 function App() {
   const { page } = useApp()
   if (page === 'marketing') return <MarketingPage />
-  if (page === 'login') return <LoginPage />
+  if (page === 'login')     return <LoginPage />
   return <AppShell />
 }
 
