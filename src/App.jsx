@@ -1,5 +1,8 @@
 import { useState, useEffect, useRef, createContext, useContext } from 'react'
 
+const SUPABASE_URL = 'https://bdmimbwkvdwahbkxkasf.supabase.co'
+const SUPABASE_KEY = 'eyJhbGciJINNU'
+
 const S = {
   bg: '#0b0e16', surface: '#111520', card: '#161b28', border: '#232c3d',
   accent: '#f0a500', text: '#dde3ef', muted: '#5a6a82',
