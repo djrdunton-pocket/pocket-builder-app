@@ -1,10 +1,10 @@
-import { AppProvider, useApp } from './context'
-import BottomNav from './components/BottomNav'
-import HomeView from './views/HomeView'
-import TimelineView from './views/TimelineView'
-import FinanceView from './views/FinanceView'
-import CommsView from './views/CommsView'
-import MoreView from './views/MoreView'
+import { AppProvider, useApp } from './context.jsx'
+import BottomNav from './components/BottomNav.jsx'
+import HomeView from './views/HomeView.jsx'
+import TimelineView from './views/TimelineView.jsx'
+import FinanceView from './views/FinanceView.jsx'
+import CommsView from './views/CommsView.jsx'
+import MoreView from './views/MoreView.jsx'
 
 const S = {
   bg: '#0a0f1e', surface: '#0d1525', card: '#111d35',
