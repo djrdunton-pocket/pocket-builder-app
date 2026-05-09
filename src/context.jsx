@@ -1,14 +1,11 @@
-import { createContext, useContext, useState, useEffect } from 'react'
-import { createClient } from '@supabase/supabase-js'
-
 const SUPABASE_URL = 'https://bdmimbwkvdwahbkxkasf.supabase.co'
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJkbWltYndrdmR3YWhia3hrYXNmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2OTc1ODIsImV4cCI6MjA5MjI3MzU4Mn0.Y7K0JOmlgZrQubq24F8KnuOcc1uZBHr5eWjGtHJINNU'
 const RESEND_KEY = 're_CgvXFk51_5RGsU55w6v2XVp67Y7iZfdXA'
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
 
 const Ctx = createContext(null)
-export const useApp = () => useContext(Ctx)
+const useApp = () => useContext(Ctx)
 
 const INITIAL_PROJECT = {
   id: 'proj-1',
@@ -106,20 +103,41 @@ export function AppProvider({ children }) {
     return () => subscription.unsubscribe()
   }, [])
 
-  const fetchProfile = async (userId) => {
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single()
 
-    if (data) {
-      setProfile(data)
-      if (data.status === 'approved') setPage('app')
-      else setPage('pending')
+  const fetchProfile = async (userId) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single()
+
+      if (error) {
+        console.error('Profile fetch error:', error)
+        setPage('app')
+        setLoading(false)
+        return
+      }
+
+      if (data) {
+        setProfile(data)
+        if (data.status === 'approved') {
+          setPage('app')
+        } else if (data.status === 'pending') {
+          setPage('pending')
+        } else {
+          setPage('app')
+        }
+      } else {
+        setPage('app')
+      }
+    } catch (e) {
+      console.error('fetchProfile error:', e)
+      setPage('app')
     }
     setLoading(false)
   }
+
 
   const signUp = async ({ email, password, name, role, company }) => {
     const { error } = await supabase.auth.signUp({
@@ -132,8 +150,11 @@ export function AppProvider({ children }) {
   }
 
   const signIn = async ({ email, password }) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) return { success: false, error: error.message }
+    if (data?.user) {
+      await fetchProfile(data.user.id)
+    }
     return { success: true }
   }
 
