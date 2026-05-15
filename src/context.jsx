@@ -75,17 +75,113 @@ export function AppProvider({ children }) {
   }
 
   const fetchProjects = async (userId, role) => {
-    let query = supabase.from('projects').select('*')
-    if (role === 'builder') query = query.eq('builder_id', userId)
-    else if (role === 'admin') query = query.select('*')
+    try {
+      let query = supabase.from('projects').select('*')
+      if (role === 'builder') query = query.eq('builder_id', userId)
 
-    const { data, error } = await query.order('created_at', { ascending: false })
-    if (data && data.length > 0) {
-      const mapped = data.map(mapProjectFromDB)
+      const { data, error } = await query.order('created_at', { ascending: false })
+      if (error) { console.error('fetchProjects error:', error); return }
+      if (!data || data.length === 0) return
+
+      const projectIds = data.map(p => p.id)
+
+      const [
+        { data: phases },
+        { data: invoices },
+        { data: supplierInvoices },
+        { data: labourCosts },
+        { data: messages },
+        { data: documents },
+        { data: photos },
+      ] = await Promise.all([
+        supabase.from('phases').select('*').in('project_id', projectIds).order('sort_order'),
+        supabase.from('invoices').select('*').in('project_id', projectIds),
+        supabase.from('supplier_invoices').select('*').in('project_id', projectIds),
+        supabase.from('labour_costs').select('*').in('project_id', projectIds),
+        supabase.from('messages').select('*').in('project_id', projectIds),
+        supabase.from('documents').select('*').in('project_id', projectIds),
+        supabase.from('photos').select('*').in('project_id', projectIds),
+      ])
+
+      const mapped = data.map(p => ({
+        ...mapProjectFromDB(p),
+        phases: (phases || []).filter(ph => ph.project_id === p.id).map(ph => ({
+          id: ph.id,
+          name: ph.name,
+          start: ph.start_date,
+          end: ph.end_date,
+          status: ph.status,
+          milestones: [],
+        })),
+        invoices: (invoices || []).filter(i => i.project_id === p.id).map(i => ({
+          id: i.id,
+          number: i.number,
+          description: i.description,
+          amount: Number(i.amount) || 0,
+          vat: Number(i.vat) || 0,
+          dueDate: i.due_date,
+          status: i.status,
+          paidDate: i.paid_date,
+        })),
+        supplierInvoices: (supplierInvoices || []).filter(i => i.project_id === p.id).map(i => ({
+          id: i.id,
+          supplier: i.supplier,
+          description: i.description,
+          amount: Number(i.amount) || 0,
+          date: i.date,
+          status: i.status,
+        })),
+        labourCosts: (labourCosts || []).filter(c => c.project_id === p.id).map(c => ({
+          id: c.id,
+          description: c.description,
+          amount: Number(c.amount) || 0,
+          date: c.date,
+        })),
+        messages: {
+          client: (messages || []).filter(m => m.project_id === p.id && m.thread === 'client').map(m => ({
+            id: m.id,
+            from: m.from_role,
+            fromName: m.from_name,
+            text: m.text,
+            ts: m.created_at,
+            read: m.read,
+          })),
+          supplier: (messages || []).filter(m => m.project_id === p.id && m.thread === 'supplier').map(m => ({
+            id: m.id,
+            from: m.from_role,
+            fromName: m.from_name,
+            text: m.text,
+            ts: m.created_at,
+            read: m.read,
+          })),
+        },
+        documents: (documents || []).filter(d => d.project_id === p.id).map(d => ({
+          id: d.id,
+          name: d.name,
+          uploadedBy: d.uploaded_by,
+          uploaderName: d.uploader_name,
+          uploaderRole: d.uploader_role,
+          size: d.size,
+          date: d.created_at?.slice(0, 10),
+          visibleTo: d.visible_to || [],
+        })),
+        photos: (photos || []).filter(ph => ph.project_id === p.id).map(ph => ({
+          id: ph.id,
+          caption: ph.caption,
+          uploadedBy: ph.uploaded_by,
+          visibleTo: ph.visible_to || [],
+          url: ph.url,
+          date: ph.created_at?.slice(0, 10),
+        })),
+      }))
+
       setProjects(mapped)
       setActiveProjectId(mapped[0].id)
+    } catch (e) {
+      console.error('fetchProjects catch:', e)
     }
   }
+
 
   const mapProjectFromDB = (p) => ({
     id: p.id,
@@ -173,22 +269,32 @@ export function AppProvider({ children }) {
 
   // Project CRUD
   const addProject = async (proj) => {
-    const { data, error } = await supabase.from('projects').insert({
-      builder_id: user.id,
-      name: proj.name,
-      address: proj.address,
-      start_date: proj.startDate,
-      end_date: proj.endDate,
-      budget: proj.budget,
-      status: 'active'
-    }).select().single()
+    try {
+      const { data, error } = await supabase.from('projects').insert({
+        builder_id: user.id,
+        name: proj.name,
+        address: proj.address || '',
+        start_date: proj.startDate || null,
+        end_date: proj.endDate || null,
+        budget: Number(proj.budget) || 0,
+        status: 'active'
+      }).select().single()
 
-    if (data) {
-      const mapped = mapProjectFromDB(data)
-      setProjects(ps => [mapped, ...ps])
-      setActiveProjectId(mapped.id)
+      if (error) {
+        console.error('Project creation error:', error)
+        return { success: false }
+      }
+
+      if (data) {
+        const mapped = mapProjectFromDB(data)
+        setProjects(ps => [mapped, ...ps])
+        setActiveProjectId(mapped.id)
+        return { success: true, project: mapped }
+      }
+    } catch (e) {
+      console.error('addProject error:', e)
     }
-    return { success: !error }
+    return { success: false }
   }
 
   const updateActiveProject = async (updates) => {

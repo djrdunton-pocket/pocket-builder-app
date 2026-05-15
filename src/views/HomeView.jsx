@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useApp } from '../context'
 
 const S = {
@@ -28,7 +28,7 @@ function StatCard({ label, value, color = S.accent, sub }) {
   )
 }
 
-function AddProjectSheet({ onClose }) {
+function AddProjectSheet({ onClose, onCreated }) {
   const { addProject } = useApp()
   const [form, setForm] = useState({ name: '', address: '', startDate: '', endDate: '', budget: '' })
   const [loading, setLoading] = useState(false)
@@ -48,6 +48,7 @@ function AddProjectSheet({ onClose }) {
     await addProject(form)
     setLoading(false)
     onClose()
+    if (onCreated) onCreated()
   }
 
   return (
@@ -186,7 +187,7 @@ function ProjectList({ onSelect }) {
           </div>
         )}
       </div>
-      {showAdd && <AddProjectSheet onClose={() => setShowAdd(false)} />}
+      {showAdd && <AddProjectSheet onClose={() => setShowAdd(false)} onCreated={onSelect} />}
     </div>
   )
 }
@@ -319,6 +320,14 @@ function ProjectDashboard() {
 export default function HomeView() {
   const { profile, activeProject, projects } = useApp()
   const [view, setView] = useState('list')
+
+  useEffect(() => {
+    if (projects.length > 0 && activeProject) {
+      setView('dashboard')
+    } else {
+      setView('list')
+    }
+  }, [projects.length])
 
   return (
     <div style={{ fontFamily: "'DM Sans','Segoe UI',sans-serif" }}>

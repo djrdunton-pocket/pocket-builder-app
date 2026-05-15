@@ -84,35 +84,13 @@ function MarketingPage() {
       </section>
 
       <section style={{ padding: '70px 24px', background: S.surface, borderTop: `1px solid ${S.border}`, borderBottom: `1px solid ${S.border}` }}>
-        <div style={{ maxWidth: 860, margin: '0 auto' }}>
-          <h2 style={{ fontSize: 32, fontWeight: 900, textAlign: 'center', marginBottom: 10, color: S.text, letterSpacing: '-0.02em' }}>Simple pricing</h2>
-          <p style={{ textAlign: 'center', color: S.muted, marginBottom: 40, fontSize: 15 }}>£19.99/month includes one active project. Add more at £29.99 each. Clients and suppliers always free.</p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
-            {[
-              { name: 'Standard', price: '£19.99', period: '/month', color: S.accent, popular: true, features: ['1 active project included', 'Client portal included', 'Supplier access included', 'Invoicing & P&L tracker', 'Document & photo sharing', 'Messaging', 'Annual P&L across all projects', 'Archive projects — free & view only', 'Priority support'], cta: 'Start free trial' },
-              { name: 'Per extra project', price: '£29.99', period: '/project/month', color: S.blue, popular: false, features: ['Added to your Standard plan', 'Full access for that project', 'Client & supplier portals', 'Invoicing & P&L', 'Cancel anytime', 'Stops billing when archived', 'Data kept forever'], cta: 'Start with Standard' },
-              { name: 'Clients & suppliers', price: 'Free', period: 'always', color: S.green, popular: false, features: ['Invited by their builder', 'Project timeline view', 'Document access', 'Photo sharing', 'Direct messaging', 'No account fees ever'], cta: 'Get invited by your builder' },
-            ].map(plan => (
-              <div key={plan.name} style={{ background: S.card, border: `2px solid ${plan.popular ? plan.color : S.border}`, borderRadius: 14, padding: 26, position: 'relative' }}>
-                {plan.popular && <div style={{ position: 'absolute', top: -13, left: '50%', transform: 'translateX(-50%)', background: plan.color, color: S.bg, fontSize: 10, fontWeight: 800, padding: '4px 14px', borderRadius: 20, whiteSpace: 'nowrap' }}>MOST POPULAR</div>}
-                <div style={{ fontSize: 13, fontWeight: 700, color: plan.color, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>{plan.name}</div>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 20 }}>
-                  <span style={{ fontSize: 36, fontWeight: 900, color: S.text, fontFamily: 'monospace' }}>{plan.price}</span>
-                  <span style={{ fontSize: 12, color: S.muted }}>{plan.period}</span>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 24 }}>
-                  {plan.features.map(f => (
-                    <div key={f} style={{ display: 'flex', gap: 8, fontSize: 13 }}>
-                      <span style={{ color: plan.color }}>✓</span>
-                      <span style={{ color: S.muted }}>{f}</span>
-                    </div>
-                  ))}
-                </div>
-                <button onClick={() => setPage('signup')} style={{ width: '100%', padding: '10px 0', background: plan.popular ? plan.color : S.surface, color: plan.popular ? S.bg : S.text, border: `1px solid ${plan.popular ? plan.color : S.border}`, borderRadius: 8, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>{plan.cta}</button>
-              </div>
-            ))}
-          </div>
-          <p style={{ textAlign: 'center', color: S.muted, fontSize: 12, marginTop: 20 }}>All prices exclude VAT. 14-day free trial. Cancel anytime.</p>
+        <div style={{ maxWidth: 600, margin: '0 auto', textAlign: 'center' }}>
+          <h2 style={{ fontSize: 32, fontWeight: 900, color: S.text, letterSpacing: '-0.02em', marginBottom: 12 }}>Ready to get started?</h2>
+          <p style={{ fontSize: 15, color: S.muted, marginBottom: 32, lineHeight: 1.7 }}>Join builders across the UK managing their projects with Pocket Builder. Sign up free and create your first project in minutes.</p>
+          <button onClick={() => setPage('signup')} style={{ padding: '14px 32px', background: S.accent, color: S.bg, border: 'none', borderRadius: 12, fontWeight: 800, fontSize: 16, cursor: 'pointer' }}>
+            Get started free →
+          </button>
+          <div style={{ marginTop: 14, fontSize: 12, color: S.muted }}>Questions? Email us at <span style={{ color: S.accent }}>hello@pocketbuilder.co</span></div>
         </div>
       </section>
 
@@ -125,7 +103,9 @@ function MarketingPage() {
       </footer>
     </div>
   )
-}function LoginPage() {
+}
+
+function LoginPage() {
   const { signIn, setPage } = useApp()
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
@@ -195,16 +175,10 @@ function SignUpPage() {
     return (
       <div style={{ minHeight: '100vh', background: S.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, fontFamily: "'DM Sans','Segoe UI',sans-serif" }}>
         <div style={{ width: '100%', maxWidth: 400, textAlign: 'center' }}>
-          <div style={{ fontSize: 64, marginBottom: 20 }}>
-            {role === 'builder' ? '⏳' : '✅'}
-          </div>
-          <div style={{ fontSize: 22, fontWeight: 900, color: S.text, marginBottom: 12 }}>
-            {role === 'builder' ? 'Approval pending' : 'Account created!'}
-          </div>
+          <div style={{ fontSize: 64, marginBottom: 20 }}>✅</div>
+          <div style={{ fontSize: 22, fontWeight: 900, color: S.text, marginBottom: 12 }}>Account created!</div>
           <div style={{ fontSize: 14, color: S.muted, lineHeight: 1.7, marginBottom: 24 }}>
-            {role === 'builder'
-              ? 'Your builder account is awaiting approval. We\'ll email you at ' + email + ' once approved — usually within 24 hours.'
-              : 'Check your email to confirm your account, then sign in.'}
+            Check your email to confirm your account, then sign in.
           </div>
           <button onClick={() => setPage('login')} style={{ padding: '12px 28px', background: S.accent, color: S.bg, border: 'none', borderRadius: 12, fontWeight: 800, fontSize: 15, cursor: 'pointer' }}>
             Go to sign in
@@ -236,11 +210,6 @@ function SignUpPage() {
             </div>
           </div>
 
-          {role === 'builder' && (
-            <div style={{ background: S.surface, borderRadius: 10, padding: '10px 14px', marginBottom: 14, fontSize: 12, color: S.muted, lineHeight: 1.6 }}>
-              💡 Builder accounts require approval before access is granted. You'll be notified by email within 24 hours.
-            </div>
-          )}
           {role === 'client' && (
             <div style={{ background: S.surface, borderRadius: 10, padding: '10px 14px', marginBottom: 14, fontSize: 12, color: S.muted, lineHeight: 1.6 }}>
               💡 Once registered, your builder will link you to your project.
@@ -297,7 +266,9 @@ function PendingPage() {
       </div>
     </div>
   )
-}function LoadingScreen() {
+}
+
+function LoadingScreen() {
   return (
     <div style={{ minHeight: '100vh', background: S.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'DM Sans','Segoe UI',sans-serif" }}>
       <div style={{ textAlign: 'center' }}>
@@ -309,8 +280,10 @@ function PendingPage() {
 }
 
 function AppShell() {
-  const { activeTab, profile } = useApp()
+  const { activeTab, profile, activeProject, projects } = useApp()
   const isBuilder = profile?.role === 'builder' || profile?.role === 'admin'
+
+  if (!profile) return <LoadingScreen />
 
   return (
     <div style={{ minHeight: '100vh', background: S.bg, fontFamily: "'DM Sans','Segoe UI',sans-serif", color: S.text, maxWidth: 600, margin: '0 auto' }}>

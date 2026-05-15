@@ -10,9 +10,6 @@ const S = {
 
 const fmt = n => '£' + Number(n || 0).toLocaleString('en-GB')
 
-const INVOICE_STATUSES = ['Unpaid', 'Paid', 'Overdue']
-const STATUS_COLORS = { Paid: S.green, Unpaid: S.amber, Overdue: S.red }
-
 function Sheet({ title, onClose, children }) {
   return (
     <>
@@ -43,7 +40,7 @@ const Inp = ({ label, value, onChange, type = 'text', placeholder }) => (
 
 function AddInvoiceSheet({ onClose }) {
   const { addInvoice, activeProject } = useApp()
-  const nextNum = `INV-${String(activeProject.invoices.length + 1).padStart(3, '0')}`
+  const nextNum = `INV-${String((activeProject?.invoices?.length || 0) + 1).padStart(3, '0')}`
   const [form, setForm] = useState({ number: nextNum, description: '', amount: '', vatRate: 20, dueDate: '', status: 'Unpaid' })
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
   const vat = Math.round((Number(form.amount) || 0) * form.vatRate / 100)
@@ -81,16 +78,15 @@ function AddInvoiceSheet({ onClose }) {
 function InvoiceDetailSheet({ invoice, onClose }) {
   const { updateInvoice, deleteInvoice } = useApp()
   const [confirmDelete, setConfirmDelete] = useState(false)
-
   const markPaid = () => updateInvoice(invoice.id, { status: 'Paid', paidDate: new Date().toISOString().slice(0, 10) })
   const markOverdue = () => updateInvoice(invoice.id, { status: 'Overdue' })
   const handleDelete = () => { if (confirmDelete) { deleteInvoice(invoice.id); onClose() } else setConfirmDelete(true) }
-
+  const STATUS_COLORS = { Paid: S.green, Unpaid: S.amber, Overdue: S.red }
   const color = STATUS_COLORS[invoice.status] || S.muted
 
   return (
     <Sheet title={invoice.number} onClose={onClose}>
-      <div style={{ background: S.surface, borderRadius: 12, padding: '16px', marginBottom: 16 }}>
+      <div style={{ background: S.surface, borderRadius: 12, padding: 16, marginBottom: 16 }}>
         <div style={{ fontSize: 13, color: S.muted, marginBottom: 4 }}>{invoice.description}</div>
         <div style={{ fontSize: 28, fontWeight: 900, color: S.text, fontFamily: 'monospace', marginBottom: 8 }}>{fmt(invoice.amount + invoice.vat)}</div>
         <div style={{ display: 'flex', gap: 16, fontSize: 12, color: S.muted }}>
@@ -105,14 +101,10 @@ function InvoiceDetailSheet({ invoice, onClose }) {
       {invoice.paidDate && <div style={{ fontSize: 12, color: S.green, marginBottom: 16 }}>✓ Paid on {invoice.paidDate}</div>}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {invoice.status !== 'Paid' && (
-          <button onClick={markPaid} style={{ width: '100%', padding: 14, background: S.green, color: '#fff', border: 'none', borderRadius: 12, fontWeight: 800, fontSize: 15, cursor: 'pointer' }}>
-            ✓ Mark as paid
-          </button>
+          <button onClick={markPaid} style={{ width: '100%', padding: 14, background: S.green, color: '#fff', border: 'none', borderRadius: 12, fontWeight: 800, fontSize: 15, cursor: 'pointer' }}>✓ Mark as paid</button>
         )}
         {invoice.status === 'Unpaid' && (
-          <button onClick={markOverdue} style={{ width: '100%', padding: 14, background: S.surface, color: S.red, border: `1px solid ${S.red}44`, borderRadius: 12, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
-            Mark as overdue
-          </button>
+          <button onClick={markOverdue} style={{ width: '100%', padding: 14, background: S.surface, color: S.red, border: `1px solid ${S.red}44`, borderRadius: 12, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>Mark as overdue</button>
         )}
         <button onClick={handleDelete} style={{ width: '100%', padding: 14, background: confirmDelete ? S.red : S.surface, color: confirmDelete ? '#fff' : S.red, border: `1px solid ${S.red}44`, borderRadius: 12, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
           {confirmDelete ? 'Confirm delete' : 'Delete invoice'}
@@ -126,6 +118,7 @@ function AddCostSheet({ type, onClose }) {
   const { addSupplierInvoice, addLabourCost } = useApp()
   const [form, setForm] = useState({ supplier: '', description: '', amount: '', date: '', status: 'Unpaid' })
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+  const STATUS_COLORS = { Paid: S.green, Unpaid: S.amber }
 
   const save = () => {
     if (!form.description || !form.amount) return
@@ -158,6 +151,121 @@ function AddCostSheet({ type, onClose }) {
   )
 }
 
+function AllProjectsPL() {
+  const { projects } = useApp()
+  const currentYear = new Date().getFullYear()
+  const [year, setYear] = useState(currentYear)
+
+  const years = [...new Set([
+    currentYear - 1, currentYear, currentYear + 1,
+    ...projects.map(p => p.startDate ? new Date(p.startDate).getFullYear() : currentYear)
+  ])].sort()
+
+  const projectsInYear = projects.filter(p => {
+    if (!p.startDate && !p.endDate) return true
+    const start = p.startDate ? new Date(p.startDate).getFullYear() : null
+    const end   = p.endDate   ? new Date(p.endDate).getFullYear()   : null
+    return start <= year && (!end || end >= year)
+  })
+
+  const totals = projectsInYear.reduce((acc, p) => {
+    const income      = (p.invoices || []).reduce((s, i) => s + (i.amount || 0) + (i.vat || 0), 0)
+    const received    = (p.invoices || []).filter(i => i.status === 'Paid').reduce((s, i) => s + (i.amount || 0) + (i.vat || 0), 0)
+    const supplier    = (p.supplierInvoices || []).reduce((s, i) => s + (i.amount || 0), 0)
+    const labour      = (p.labourCosts || []).reduce((s, i) => s + (i.amount || 0), 0)
+    const costs       = supplier + labour
+    return {
+      income:   acc.income   + income,
+      received: acc.received + received,
+      costs:    acc.costs    + costs,
+      margin:   acc.margin   + (received - costs),
+    }
+  }, { income: 0, received: 0, costs: 0, margin: 0 })
+
+  return (
+    <div>
+      {/* Year selector */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 20, overflowX: 'auto' }}>
+        {years.map(y => (
+          <button key={y} onClick={() => setYear(y)} style={{ flexShrink: 0, padding: '7px 16px', borderRadius: 20, fontSize: 13, fontWeight: 700, border: `1.5px solid ${year === y ? S.accent : S.border}`, background: year === y ? S.accent + '22' : S.surface, color: year === y ? S.accent : S.muted, cursor: 'pointer' }}>
+            {y}
+          </button>
+        ))}
+      </div>
+
+      {/* Summary cards */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
+        <div style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: 12, padding: 16 }}>
+          <div style={{ fontSize: 11, color: S.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Income</div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+            <span style={{ fontSize: 13, color: S.muted }}>Total invoiced</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: S.text, fontFamily: 'monospace' }}>{fmt(totals.income)}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: 13, color: S.muted }}>Received</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: S.green, fontFamily: 'monospace' }}>{fmt(totals.received)}</span>
+          </div>
+        </div>
+
+        <div style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: 12, padding: 16 }}>
+          <div style={{ fontSize: 11, color: S.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Costs</div>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: 13, color: S.muted }}>Total costs</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: S.blue, fontFamily: 'monospace' }}>{fmt(totals.costs)}</span>
+          </div>
+        </div>
+
+        <div style={{ background: totals.margin >= 0 ? S.green + '15' : S.red + '15', border: `1px solid ${totals.margin >= 0 ? S.green : S.red}44`, borderRadius: 12, padding: 16 }}>
+          <div style={{ fontSize: 11, color: S.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Total margin {year}</div>
+          <div style={{ fontSize: 32, fontWeight: 900, color: totals.margin >= 0 ? S.green : S.red, fontFamily: 'monospace' }}>{fmt(totals.margin)}</div>
+          {totals.received > 0 && (
+            <div style={{ fontSize: 12, color: S.muted, marginTop: 4 }}>{Math.round(totals.margin / totals.received * 100)}% margin on received income</div>
+          )}
+        </div>
+      </div>
+
+      {/* Per project breakdown */}
+      <div style={{ fontSize: 12, fontWeight: 700, color: S.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>
+        Per project — {year}
+      </div>
+      {projectsInYear.length === 0 && (
+        <div style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: 12, padding: 24, textAlign: 'center', color: S.muted, fontSize: 14 }}>No projects in {year}</div>
+      )}
+      {projectsInYear.map(p => {
+        const income   = (p.invoices || []).reduce((s, i) => s + (i.amount || 0) + (i.vat || 0), 0)
+        const received = (p.invoices || []).filter(i => i.status === 'Paid').reduce((s, i) => s + (i.amount || 0) + (i.vat || 0), 0)
+        const costs    = (p.supplierInvoices || []).reduce((s, i) => s + (i.amount || 0), 0) + (p.labourCosts || []).reduce((s, i) => s + (i.amount || 0), 0)
+        const margin   = received - costs
+        return (
+          <div key={p.id} style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: 12, padding: '14px 16px', marginBottom: 10 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: S.text }}>{p.name}</div>
+                <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: p.status === 'archived' ? S.muted + '22' : S.green + '22', color: p.status === 'archived' ? S.muted : S.green }}>{p.status}</span>
+              </div>
+              <div style={{ fontSize: 16, fontWeight: 900, color: margin >= 0 ? S.green : S.red, fontFamily: 'monospace' }}>{fmt(margin)}</div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+              <div style={{ background: S.surface, borderRadius: 8, padding: '8px 10px' }}>
+                <div style={{ fontSize: 9, color: S.muted, textTransform: 'uppercase', marginBottom: 2 }}>Invoiced</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: S.text, fontFamily: 'monospace' }}>{fmt(income)}</div>
+              </div>
+              <div style={{ background: S.surface, borderRadius: 8, padding: '8px 10px' }}>
+                <div style={{ fontSize: 9, color: S.muted, textTransform: 'uppercase', marginBottom: 2 }}>Received</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: S.green, fontFamily: 'monospace' }}>{fmt(received)}</div>
+              </div>
+              <div style={{ background: S.surface, borderRadius: 8, padding: '8px 10px' }}>
+                <div style={{ fontSize: 9, color: S.muted, textTransform: 'uppercase', marginBottom: 2 }}>Costs</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: S.blue, fontFamily: 'monospace' }}>{fmt(costs)}</div>
+              </div>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 export default function FinanceView() {
   const { activeProject } = useApp()
   const [tab, setTab] = useState('invoices')
@@ -166,25 +274,26 @@ export default function FinanceView() {
   const [selectedInvoice, setSelectedInvoice] = useState(null)
 
   const p = activeProject
+  const STATUS_COLORS = { Paid: S.green, Unpaid: S.amber, Overdue: S.red }
 
-  const totalIncome    = p.invoices.reduce((s, i) => s + i.amount + i.vat, 0)
-  const paidIncome     = p.invoices.filter(i => i.status === 'Paid').reduce((s, i) => s + i.amount + i.vat, 0)
-  const supplierTotal  = p.supplierInvoices.reduce((s, i) => s + i.amount, 0)
-  const labourTotal    = p.labourCosts.reduce((s, i) => s + i.amount, 0)
-  const totalCosts     = supplierTotal + labourTotal
-  const margin         = paidIncome - totalCosts
-  const overdueTotal   = p.invoices.filter(i => i.status === 'Overdue').reduce((s, i) => s + i.amount + i.vat, 0)
+  const totalIncome   = (p?.invoices || []).reduce((s, i) => s + (i.amount || 0) + (i.vat || 0), 0)
+  const paidIncome    = (p?.invoices || []).filter(i => i.status === 'Paid').reduce((s, i) => s + (i.amount || 0) + (i.vat || 0), 0)
+  const supplierTotal = (p?.supplierInvoices || []).reduce((s, i) => s + (i.amount || 0), 0)
+  const labourTotal   = (p?.labourCosts || []).reduce((s, i) => s + (i.amount || 0), 0)
+  const totalCosts    = supplierTotal + labourTotal
+  const margin        = paidIncome - totalCosts
+  const overdueTotal  = (p?.invoices || []).filter(i => i.status === 'Overdue').reduce((s, i) => s + (i.amount || 0) + (i.vat || 0), 0)
 
-  const TABS = ['invoices', 'p&l', 'costs']
+  const TABS = ['invoices', 'p&l', 'costs', 'all projects']
 
   return (
     <div style={{ paddingBottom: 80 }}>
       <div style={{ background: S.surface, borderBottom: `1px solid ${S.border}`, padding: '16px 20px 0' }}>
         <div style={{ fontSize: 20, fontWeight: 900, color: S.text, marginBottom: 4 }}>Finance</div>
-        <div style={{ fontSize: 12, color: S.muted, marginBottom: 12 }}>{p.name}</div>
-        <div style={{ display: 'flex', gap: 4 }}>
+        <div style={{ fontSize: 12, color: S.muted, marginBottom: 12 }}>{p?.name || 'No project selected'}</div>
+        <div style={{ display: 'flex', gap: 2, overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
           {TABS.map(t => (
-            <button key={t} onClick={() => setTab(t)} style={{ padding: '8px 16px', borderRadius: '8px 8px 0 0', fontSize: 13, fontWeight: 700, border: 'none', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.05em', background: tab === t ? S.card : 'transparent', color: tab === t ? S.accent : S.muted, borderBottom: tab === t ? `2px solid ${S.accent}` : '2px solid transparent' }}>
+            <button key={t} onClick={() => setTab(t)} style={{ flexShrink: 0, padding: '8px 14px', borderRadius: '8px 8px 0 0', fontSize: 12, fontWeight: 700, border: 'none', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.04em', background: tab === t ? S.card : 'transparent', color: tab === t ? S.accent : S.muted, borderBottom: tab === t ? `2px solid ${S.accent}` : '2px solid transparent' }}>
               {t}
             </button>
           ))}
@@ -193,11 +302,12 @@ export default function FinanceView() {
 
       <div style={{ padding: 16 }}>
 
-        {/* P&L tab */}
-        {tab === 'p&l' && (
+        {tab === 'all projects' && <AllProjectsPL />}
+
+        {tab === 'p&l' && p && (
           <div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
-              <div style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: 12, padding: '16px' }}>
+              <div style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: 12, padding: 16 }}>
                 <div style={{ fontSize: 11, color: S.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Income</div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                   <span style={{ fontSize: 13, color: S.muted }}>Total invoiced</span>
@@ -214,8 +324,7 @@ export default function FinanceView() {
                   </div>
                 )}
               </div>
-
-              <div style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: 12, padding: '16px' }}>
+              <div style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: 12, padding: 16 }}>
                 <div style={{ fontSize: 11, color: S.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Costs</div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                   <span style={{ fontSize: 13, color: S.muted }}>Supplier invoices</span>
@@ -231,21 +340,17 @@ export default function FinanceView() {
                   <span style={{ fontSize: 13, fontWeight: 700, color: S.blue, fontFamily: 'monospace' }}>{fmt(totalCosts)}</span>
                 </div>
               </div>
-
-              <div style={{ background: margin >= 0 ? S.green + '15' : S.red + '15', border: `1px solid ${margin >= 0 ? S.green : S.red}44`, borderRadius: 12, padding: '16px' }}>
+              <div style={{ background: margin >= 0 ? S.green + '15' : S.red + '15', border: `1px solid ${margin >= 0 ? S.green : S.red}44`, borderRadius: 12, padding: 16 }}>
                 <div style={{ fontSize: 11, color: S.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Margin (cash received – costs)</div>
                 <div style={{ fontSize: 32, fontWeight: 900, color: margin >= 0 ? S.green : S.red, fontFamily: 'monospace' }}>{fmt(margin)}</div>
                 {totalCosts > 0 && paidIncome > 0 && (
-                  <div style={{ fontSize: 12, color: S.muted, marginTop: 4 }}>
-                    {Math.round(margin / paidIncome * 100)}% margin on received income
-                  </div>
+                  <div style={{ fontSize: 12, color: S.muted, marginTop: 4 }}>{Math.round(margin / paidIncome * 100)}% margin on received income</div>
                 )}
               </div>
             </div>
           </div>
         )}
 
-        {/* Invoices tab */}
         {tab === 'invoices' && (
           <div>
             <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
@@ -258,17 +363,14 @@ export default function FinanceView() {
                 <div style={{ fontSize: 20, fontWeight: 900, color: S.green, fontFamily: 'monospace' }}>{fmt(paidIncome)}</div>
               </div>
             </div>
-
             <button onClick={() => setShowAddInvoice(true)} style={{ width: '100%', padding: 13, background: S.accent, color: S.bg, border: 'none', borderRadius: 12, fontWeight: 800, fontSize: 14, cursor: 'pointer', marginBottom: 14 }}>
               + New invoice
             </button>
-
-            {p.invoices.length === 0 && (
+            {(p?.invoices || []).length === 0 && (
               <div style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: 12, padding: 24, textAlign: 'center', color: S.muted, fontSize: 14 }}>No invoices yet</div>
             )}
-
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {p.invoices.map(inv => {
+              {(p?.invoices || []).map(inv => {
                 const color = STATUS_COLORS[inv.status] || S.muted
                 return (
                   <button key={inv.id} onClick={() => setSelectedInvoice(inv)}
@@ -279,7 +381,7 @@ export default function FinanceView() {
                       <div style={{ fontSize: 12, color: S.muted }}>Due {inv.dueDate}</div>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0 }}>
-                      <div style={{ fontSize: 16, fontWeight: 900, color: S.text, fontFamily: 'monospace' }}>{fmt(inv.amount + inv.vat)}</div>
+                      <div style={{ fontSize: 16, fontWeight: 900, color: S.text, fontFamily: 'monospace' }}>{fmt((inv.amount || 0) + (inv.vat || 0))}</div>
                       <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 20, color, background: color + '22' }}>{inv.status}</span>
                     </div>
                   </button>
@@ -289,7 +391,6 @@ export default function FinanceView() {
           </div>
         )}
 
-        {/* Costs tab */}
         {tab === 'costs' && (
           <div>
             <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
@@ -301,11 +402,11 @@ export default function FinanceView() {
               </button>
             </div>
 
-            {p.supplierInvoices.length > 0 && (
+            {(p?.supplierInvoices || []).length > 0 && (
               <div style={{ marginBottom: 16 }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: S.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Supplier invoices</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {p.supplierInvoices.map(si => {
+                  {(p?.supplierInvoices || []).map(si => {
                     const color = STATUS_COLORS[si.status] || S.muted
                     return (
                       <div key={si.id} style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: 12, padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
@@ -321,17 +422,15 @@ export default function FinanceView() {
                     )
                   })}
                 </div>
-                <div style={{ marginTop: 8, textAlign: 'right', fontSize: 13, fontWeight: 700, color: S.blue, fontFamily: 'monospace' }}>
-                  Total: {fmt(supplierTotal)}
-                </div>
+                <div style={{ marginTop: 8, textAlign: 'right', fontSize: 13, fontWeight: 700, color: S.blue, fontFamily: 'monospace' }}>Total: {fmt(supplierTotal)}</div>
               </div>
             )}
 
-            {p.labourCosts.length > 0 && (
+            {(p?.labourCosts || []).length > 0 && (
               <div>
                 <div style={{ fontSize: 12, fontWeight: 700, color: S.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Labour costs</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {p.labourCosts.map(lc => (
+                  {(p?.labourCosts || []).map(lc => (
                     <div key={lc.id} style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: 12, padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
                       <div>
                         <div style={{ fontSize: 14, fontWeight: 600, color: S.text }}>{lc.description}</div>
@@ -341,13 +440,11 @@ export default function FinanceView() {
                     </div>
                   ))}
                 </div>
-                <div style={{ marginTop: 8, textAlign: 'right', fontSize: 13, fontWeight: 700, color: S.purple, fontFamily: 'monospace' }}>
-                  Total: {fmt(labourTotal)}
-                </div>
+                <div style={{ marginTop: 8, textAlign: 'right', fontSize: 13, fontWeight: 700, color: S.purple, fontFamily: 'monospace' }}>Total: {fmt(labourTotal)}</div>
               </div>
             )}
 
-            {p.supplierInvoices.length === 0 && p.labourCosts.length === 0 && (
+            {(p?.supplierInvoices || []).length === 0 && (p?.labourCosts || []).length === 0 && (
               <div style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: 12, padding: 24, textAlign: 'center', color: S.muted, fontSize: 14 }}>No costs logged yet</div>
             )}
           </div>
