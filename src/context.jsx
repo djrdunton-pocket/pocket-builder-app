@@ -243,7 +243,7 @@ export function AppProvider({ children }) {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          from: 'Pocket Builder <noreply@pocketbuilder.co>',
+          from: 'Pocket Builder <noreply@pocketbuilder.co.uk>',
           to: ['djrdunton@gmail.com'],
           subject: 'New builder sign-up — approval needed',
           html: `<h2>New builder sign-up</h2><p><strong>Name:</strong> ${name}</p><p><strong>Email:</strong> ${email}</p><p><strong>Company:</strong> ${company || 'Not provided'}</p><a href="https://pocketbuilder.co" style="background:#00c9a7;color:#0a0f1e;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;margin-top:12px">Open Pocket Builder</a>`
@@ -258,7 +258,7 @@ export function AppProvider({ children }) {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          from: 'Pocket Builder <noreply@pocketbuilder.co>',
+          from: 'Pocket Builder <noreply@pocketbuilder.co.uk>',
           to: ['djrdunton@gmail.com'],
           subject: `Support message from ${fromName}`,
           html: `<h2>Support message</h2><p><strong>From:</strong> ${fromName} (${fromEmail})</p><p><strong>Message:</strong></p><blockquote>${message}</blockquote><a href="https://pocketbuilder.co" style="background:#00c9a7;color:#0a0f1e;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;margin-top:12px">Open Pocket Builder</a>`
