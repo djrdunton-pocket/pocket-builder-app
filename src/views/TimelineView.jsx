@@ -10,18 +10,29 @@ const S = {
 }
 
 const STATUS_COLORS = {
-  'Not Started': S.muted, 'In Progress': S.blue,
-  'Complete': S.green, 'On Hold': S.amber
+  'Not Started': '#5a7a9a', 'In Progress': '#3b82f6',
+  'Complete': '#22c55e', 'On Hold': '#f59e0b'
+}
+
+const fmtDate = d => {
+  if (!d) return '—'
+  try {
+    const [year, month, day] = d.split('-')
+    return new Date(year, month - 1, day).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+  } catch { return d }
 }
 
 function AddPhaseSheet({ onClose }) {
   const { addPhase } = useApp()
   const [form, setForm] = useState({ name: '', start: '', end: '', status: 'Not Started' })
+  const [loading, setLoading] = useState(false)
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
-  const save = () => {
+  const save = async () => {
     if (!form.name || !form.start || !form.end) return
-    addPhase(form)
+    setLoading(true)
+    await addPhase(form)
+    setLoading(false)
     onClose()
   }
 
@@ -50,9 +61,9 @@ function AddPhaseSheet({ onClose }) {
             {inp('Start date', 'start', 'date')}
             {inp('End date', 'end', 'date')}
           </div>
-          <button onClick={save} disabled={!form.name || !form.start || !form.end}
-            style={{ width: '100%', padding: 14, background: S.accent, color: S.bg, border: 'none', borderRadius: 12, fontWeight: 800, fontSize: 15, cursor: 'pointer', opacity: (!form.name || !form.start || !form.end) ? 0.5 : 1 }}>
-            Add phase
+          <button onClick={save} disabled={!form.name || !form.start || !form.end || loading}
+            style={{ width: '100%', padding: 14, background: S.accent, color: S.bg, border: 'none', borderRadius: 12, fontWeight: 800, fontSize: 15, cursor: 'pointer', opacity: (!form.name || !form.start || !form.end || loading) ? 0.5 : 1 }}>
+            {loading ? 'Adding…' : 'Add phase'}
           </button>
         </div>
       </div>
@@ -61,10 +72,10 @@ function AddPhaseSheet({ onClose }) {
 }
 
 function AddUnavailableSheet({ onClose }) {
-  const { addUnavailable, user } = useApp()
-  const isBuilder = user?.role === 'builder' || user?.role === 'admin'
-  const [form, setForm] = useState({ label: '', start: '', end: '', party: user?.role === 'client' ? 'client' : 'builder' })
+  const { addUnavailable, user, profile } = useApp()
+  const [form, setForm] = useState({ label: '', start: '', end: '', party: profile?.role === 'client' ? 'client' : 'builder' })
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+  const isBuilder = profile?.role === 'builder' || profile?.role === 'admin'
 
   const save = () => {
     if (!form.label || !form.start || !form.end) return
@@ -106,7 +117,7 @@ function AddUnavailableSheet({ onClose }) {
               <label style={{ display: 'block', fontSize: 10, color: S.muted, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Party</label>
               <div style={{ display: 'flex', gap: 8 }}>
                 {['builder', 'client', 'both'].map(p => (
-                  <button key={p} onClick={() => set('party', p)} style={{ flex: 1, padding: '10px', borderRadius: 10, border: `2px solid ${form.party === p ? S.accent : S.border}`, background: form.party === p ? S.accent + '22' : S.surface, color: form.party === p ? S.accent : S.muted, fontWeight: 700, fontSize: 13, cursor: 'pointer', textTransform: 'capitalize' }}>{p}</button>
+                  <button key={p} onClick={() => set('party', p)} style={{ flex: 1, padding: 10, borderRadius: 10, border: `2px solid ${form.party === p ? S.accent : S.border}`, background: form.party === p ? S.accent + '22' : S.surface, color: form.party === p ? S.accent : S.muted, fontWeight: 700, fontSize: 13, cursor: 'pointer', textTransform: 'capitalize' }}>{p}</button>
                 ))}
               </div>
             </div>
@@ -122,22 +133,30 @@ function AddUnavailableSheet({ onClose }) {
 }
 
 export default function TimelineView() {
-  const { activeProject, user, deleteUnavailable } = useApp()
+  const { activeProject, user, profile, deleteUnavailable } = useApp()
   const [selectedPhase, setSelectedPhase] = useState(null)
   const [showAddPhase, setShowAddPhase] = useState(false)
   const [showAddUnav, setShowAddUnav] = useState(false)
-  const isBuilder = user?.role === 'builder' || user?.role === 'admin'
+  const isBuilder = profile?.role === 'builder' || profile?.role === 'admin'
+
+  if (!activeProject) return (
+    <div style={{ padding: 20, textAlign: 'center', color: S.muted, fontFamily: "'DM Sans','Segoe UI',sans-serif", paddingTop: 60 }}>
+      <div style={{ fontSize: 32, marginBottom: 12 }}>📅</div>
+      <div style={{ fontSize: 16, fontWeight: 700, color: S.text, marginBottom: 6 }}>No project selected</div>
+      <div style={{ fontSize: 13 }}>Go to Projects to select or create a project</div>
+    </div>
+  )
 
   const p = activeProject
-
-  const daysLeft = Math.ceil((new Date(p.endDate) - new Date()) / 86400000)
-  const totalPhases = p.phases.length
-  const donePhases = p.phases.filter(ph => ph.status === 'Complete').length
-  const openMilestones = p.phases.reduce((s, ph) => s + ph.milestones.filter(ms => !ms.resolved).length, 0)
+  const phases = p.phases || []
+  const unavailable = p.unavailable || []
+  const daysLeft = p.endDate ? Math.ceil((new Date(p.endDate) - new Date()) / 86400000) : null
+  const totalPhases = phases.length
+  const donePhases = phases.filter(ph => ph.status === 'Complete').length
+  const openMilestones = phases.reduce((s, ph) => s + (ph.milestones || []).filter(ms => !ms.resolved).length, 0)
 
   return (
-    <div style={{ paddingBottom: 80 }}>
-      {/* Header */}
+    <div style={{ paddingBottom: 80, fontFamily: "'DM Sans','Segoe UI',sans-serif" }}>
       <div style={{ background: S.surface, borderBottom: `1px solid ${S.border}`, padding: '16px 20px' }}>
         <div style={{ fontSize: 20, fontWeight: 900, color: S.text, marginBottom: 4 }}>Timeline</div>
         <div style={{ fontSize: 12, color: S.muted }}>{p.name}</div>
@@ -152,7 +171,7 @@ export default function TimelineView() {
           </div>
           <div style={{ flex: 1, background: S.card, border: `1px solid ${S.border}`, borderRadius: 12, padding: '12px 14px' }}>
             <div style={{ fontSize: 10, color: S.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Days left</div>
-            <div style={{ fontSize: 22, fontWeight: 900, color: daysLeft < 30 ? S.red : S.accent, fontFamily: 'monospace' }}>{daysLeft > 0 ? daysLeft : 0}</div>
+            <div style={{ fontSize: 22, fontWeight: 900, color: daysLeft !== null && daysLeft < 30 ? S.red : S.accent, fontFamily: 'monospace' }}>{daysLeft !== null ? (daysLeft > 0 ? daysLeft : 0) : '—'}</div>
           </div>
           <div style={{ flex: 1, background: S.card, border: `1px solid ${S.border}`, borderRadius: 12, padding: '12px 14px' }}>
             <div style={{ fontSize: 10, color: S.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Decisions</div>
@@ -170,25 +189,25 @@ export default function TimelineView() {
             <div style={{ width: `${totalPhases ? donePhases / totalPhases * 100 : 0}%`, height: '100%', background: S.accent, borderRadius: 4, transition: 'width 0.5s ease' }} />
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
-            <span style={{ fontSize: 11, color: S.muted }}>{p.startDate}</span>
-            <span style={{ fontSize: 11, color: S.muted }}>{p.endDate}</span>
+            <span style={{ fontSize: 11, color: S.muted }}>{fmtDate(p.startDate)}</span>
+            <span style={{ fontSize: 11, color: S.muted }}>{fmtDate(p.endDate)}</span>
           </div>
         </div>
 
         {/* Actions */}
         {isBuilder && (
           <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
-            <button onClick={() => setShowAddPhase(true)} style={{ flex: 1, padding: '12px', background: S.accent, color: S.bg, border: 'none', borderRadius: 12, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
+            <button onClick={() => setShowAddPhase(true)} style={{ flex: 1, padding: 12, background: S.accent, color: S.bg, border: 'none', borderRadius: 12, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
               + Add phase
             </button>
-            <button onClick={() => setShowAddUnav(true)} style={{ flex: 1, padding: '12px', background: S.surface, color: S.muted, border: `1px solid ${S.border}`, borderRadius: 12, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
+            <button onClick={() => setShowAddUnav(true)} style={{ flex: 1, padding: 12, background: S.surface, color: S.muted, border: `1px solid ${S.border}`, borderRadius: 12, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
               🚫 Not available
             </button>
           </div>
         )}
         {!isBuilder && (
           <div style={{ marginBottom: 16 }}>
-            <button onClick={() => setShowAddUnav(true)} style={{ width: '100%', padding: '12px', background: S.surface, color: S.muted, border: `1px solid ${S.border}`, borderRadius: 12, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
+            <button onClick={() => setShowAddUnav(true)} style={{ width: '100%', padding: 12, background: S.surface, color: S.muted, border: `1px solid ${S.border}`, borderRadius: 12, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
               🚫 Log unavailability
             </button>
           </div>
@@ -197,22 +216,22 @@ export default function TimelineView() {
         {/* Phases list */}
         <div style={{ marginBottom: 16 }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: S.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Phases</div>
-          {p.phases.length === 0 && (
-            <div style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: 12, padding: '24px', textAlign: 'center', color: S.muted, fontSize: 14 }}>
+          {phases.length === 0 && (
+            <div style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: 12, padding: 24, textAlign: 'center', color: S.muted, fontSize: 14 }}>
               No phases yet{isBuilder ? ' — tap + Add phase to get started' : ''}
             </div>
           )}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {p.phases.map(ph => {
+            {phases.map(ph => {
               const color = STATUS_COLORS[ph.status] || S.muted
-              const openMs = ph.milestones.filter(ms => !ms.resolved).length
+              const openMs = (ph.milestones || []).filter(ms => !ms.resolved).length
               return (
                 <button key={ph.id} onClick={() => setSelectedPhase(ph)}
                   style={{ background: S.card, border: `1px solid ${color}44`, borderRadius: 12, padding: '14px 16px', cursor: 'pointer', textAlign: 'left', width: '100%', display: 'flex', alignItems: 'center', gap: 12 }}>
                   <div style={{ width: 12, height: 12, borderRadius: '50%', background: color, flexShrink: 0 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 15, fontWeight: 700, color: S.text, marginBottom: 3 }}>{ph.name}</div>
-                    <div style={{ fontSize: 12, color: S.muted }}>{ph.start} → {ph.end}</div>
+                    <div style={{ fontSize: 12, color: S.muted }}>{fmtDate(ph.start)} → {fmtDate(ph.end)}</div>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
                     <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 20, color, background: color + '22' }}>{ph.status}</span>
@@ -226,17 +245,17 @@ export default function TimelineView() {
         </div>
 
         {/* Unavailability */}
-        {p.unavailable.length > 0 && (
+        {unavailable.length > 0 && (
           <div>
             <div style={{ fontSize: 12, fontWeight: 700, color: S.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Not available periods</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {p.unavailable.map(u => (
+              {unavailable.map(u => (
                 <div key={u.id} style={{ background: S.card, border: `1px solid ${S.red}33`, borderRadius: 12, padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 600, color: S.text }}>{u.label}</div>
-                    <div style={{ fontSize: 11, color: S.muted, marginTop: 2 }}>{u.start} → {u.end} · <span style={{ textTransform: 'capitalize' }}>{u.party}</span></div>
+                    <div style={{ fontSize: 11, color: S.muted, marginTop: 2 }}>{fmtDate(u.start)} → {fmtDate(u.end)} · <span style={{ textTransform: 'capitalize' }}>{u.party}</span></div>
                   </div>
-                  {(isBuilder || user?.role === u.party || u.party === user?.role) && (
+                  {isBuilder && (
                     <button onClick={() => deleteUnavailable(u.id)} style={{ background: 'none', border: 'none', color: S.red, cursor: 'pointer', fontSize: 20, padding: '4px 8px', minHeight: 44, minWidth: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
                   )}
                 </div>

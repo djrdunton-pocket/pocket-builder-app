@@ -5,7 +5,7 @@ const SUPABASE_URL = 'https://bdmimbwkvdwahbkxkasf.supabase.co'
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJkbWltYndrdmR3YWhia3hrYXNmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2OTc1ODIsImV4cCI6MjA5MjI3MzU4Mn0.Y7K0JOmlgZrQubq24F8KnuOcc1uZBHr5eWjGtHJINNU'
 const RESEND_KEY = 're_CgvXFk51_5RGsU55w6v2XVp67Y7iZfdXA'
 
-// Pocket Builder v2.2
+// Pocket Builder v2.3
 export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
 
 const Ctx = createContext(null)
@@ -20,9 +20,8 @@ export function AppProvider({ children }) {
   const [activeProjectId, setActiveProjectId] = useState(null)
   const [activeTab, setActiveTab] = useState('home')
 
-  const activeProject = projects.find(p => p.id === activeProjectId) || projects[0] || null
+  const activeProject = projects.find(p => p.id === activeProjectId) ?? projects[0] ?? null
 
-  // Auth state
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
@@ -41,6 +40,8 @@ export function AppProvider({ children }) {
         setUser(null)
         setProfile(null)
         setProjects([])
+        setActiveProjectId(null)
+        setActiveTab('home')
         setPage('marketing')
         setLoading(false)
       }
@@ -69,6 +70,7 @@ export function AppProvider({ children }) {
         }
       }
     } catch (e) {
+      console.error('fetchProfile error:', e)
       setPage('app')
     }
     setLoading(false)
@@ -173,6 +175,9 @@ export function AppProvider({ children }) {
           url: ph.url,
           date: ph.created_at?.slice(0, 10),
         })),
+        changeRequests: [],
+        unavailable: [],
+        suppliers: [],
       }))
 
       setProjects(mapped)
@@ -181,7 +186,6 @@ export function AppProvider({ children }) {
       console.error('fetchProjects catch:', e)
     }
   }
-
 
   const mapProjectFromDB = (p) => ({
     id: p.id,
@@ -201,19 +205,8 @@ export function AppProvider({ children }) {
     builderPhone: p.builder_phone || '',
     builderEmail: p.builder_email || '',
     builderAddress: p.builder_address || '',
-    phases: [],
-    invoices: [],
-    supplierInvoices: [],
-    labourCosts: [],
-    messages: { client: [], supplier: [] },
-    documents: [],
-    photos: [],
-    changeRequests: [],
-    unavailable: [],
-    suppliers: [],
   })
 
-  // Auth functions
   const signUp = async ({ email, password, name, role, company }) => {
     const { error } = await supabase.auth.signUp({
       email, password,
@@ -233,10 +226,14 @@ export function AppProvider({ children }) {
 
   const logout = async () => {
     await supabase.auth.signOut()
-    setUser(null); setProfile(null); setProjects([]); setPage('marketing')
+    setUser(null)
+    setProfile(null)
+    setProjects([])
+    setActiveProjectId(null)
+    setActiveTab('home')
+    setPage('marketing')
   }
 
-  // Email notifications
   const sendAdminNotification = async ({ name, email, company }) => {
     try {
       await fetch('https://api.resend.com/emails', {
@@ -246,7 +243,7 @@ export function AppProvider({ children }) {
           from: 'Pocket Builder <noreply@pocketbuilder.co.uk>',
           to: ['djrdunton@gmail.com'],
           subject: 'New builder sign-up — approval needed',
-          html: `<h2>New builder sign-up</h2><p><strong>Name:</strong> ${name}</p><p><strong>Email:</strong> ${email}</p><p><strong>Company:</strong> ${company || 'Not provided'}</p><a href="https://pocketbuilder.co" style="background:#00c9a7;color:#0a0f1e;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;margin-top:12px">Open Pocket Builder</a>`
+          html: `<h2>New builder sign-up</h2><p><strong>Name:</strong> ${name}</p><p><strong>Email:</strong> ${email}</p><p><strong>Company:</strong> ${company || 'Not provided'}</p><a href="https://pocketbuilder.co.uk" style="background:#00c9a7;color:#0a0f1e;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;margin-top:12px">Open Pocket Builder</a>`
         })
       })
     } catch (e) { console.log('Admin notification failed:', e) }
@@ -261,13 +258,12 @@ export function AppProvider({ children }) {
           from: 'Pocket Builder <noreply@pocketbuilder.co.uk>',
           to: ['djrdunton@gmail.com'],
           subject: `Support message from ${fromName}`,
-          html: `<h2>Support message</h2><p><strong>From:</strong> ${fromName} (${fromEmail})</p><p><strong>Message:</strong></p><blockquote>${message}</blockquote><a href="https://pocketbuilder.co" style="background:#00c9a7;color:#0a0f1e;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;margin-top:12px">Open Pocket Builder</a>`
+          html: `<h2>Support message</h2><p><strong>From:</strong> ${fromName} (${fromEmail})</p><p><strong>Message:</strong></p><blockquote>${message}</blockquote><a href="https://pocketbuilder.co.uk" style="background:#00c9a7;color:#0a0f1e;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;margin-top:12px">Open Pocket Builder</a>`
         })
       })
     } catch (e) { console.log('Support email failed:', e) }
   }
 
-  // Project CRUD
   const addProject = async (proj) => {
     try {
       const { data, error } = await supabase.from('projects').insert({
@@ -280,15 +276,13 @@ export function AppProvider({ children }) {
         status: 'active'
       }).select().single()
 
-      if (error) {
-        console.error('Project creation error:', error)
-        return { success: false }
-      }
+      if (error) { console.error('Project creation error:', error); return { success: false } }
 
       if (data) {
-        const mapped = mapProjectFromDB(data)
+        const mapped = { ...mapProjectFromDB(data), phases: [], invoices: [], supplierInvoices: [], labourCosts: [], messages: { client: [], supplier: [] }, documents: [], photos: [], changeRequests: [], unavailable: [], suppliers: [] }
         setProjects(ps => [mapped, ...ps])
         setActiveProjectId(mapped.id)
+        setActiveTab('home')
         return { success: true, project: mapped }
       }
     } catch (e) {
@@ -345,11 +339,10 @@ export function AppProvider({ children }) {
 
     if (data) {
       const mapped = { id: data.id, name: data.name, start: data.start_date, end: data.end_date, status: data.status, milestones: [] }
-      setProjects(ps => ps.map(p => p.id === activeProjectId
-        ? { ...p, phases: [...p.phases, mapped] }
-        : p))
+      setProjects(ps => ps.map(p => p.id === activeProjectId ? { ...p, phases: [...p.phases, mapped] } : p))
     }
   }
+
   const updatePhase = async (phId, updates) => {
     const dbUpdates = {}
     if (updates.name !== undefined) dbUpdates.name = updates.name
@@ -360,54 +353,56 @@ export function AppProvider({ children }) {
     if (Object.keys(dbUpdates).length > 0) {
       await supabase.from('phases').update(dbUpdates).eq('id', phId)
     }
-
     setProjects(ps => ps.map(p => p.id === activeProjectId
       ? { ...p, phases: p.phases.map(ph => ph.id === phId ? { ...ph, ...updates } : ph) }
       : p))
   }
+
   const deletePhase = async (phId) => {
     await supabase.from('phases').delete().eq('id', phId)
     setProjects(ps => ps.map(p => p.id === activeProjectId
       ? { ...p, phases: p.phases.filter(ph => ph.id !== phId) }
       : p))
   }
+
   const addMilestone = (phId, text) => {
     setProjects(ps => ps.map(p => p.id === activeProjectId
       ? { ...p, phases: p.phases.map(ph => ph.id === phId
-          ? { ...ph, milestones: [...ph.milestones, { id: 'ms_' + Date.now(), text, resolved: false, replies: [] }] }
-          : ph) }
-      : p))
-  }
-  const replyMilestone = (phId, msId, text) => {
-    setProjects(ps => ps.map(p => p.id === activeProjectId
-      ? { ...p, phases: p.phases.map(ph => ph.id === phId
-          ? { ...ph, milestones: ph.milestones.map(ms => ms.id === msId
-              ? { ...ms, replies: [...ms.replies, { by: profile?.name, text, ts: new Date().toISOString() }] }
-              : ms) }
-          : ph) }
-      : p))
-  }
-  const resolveMilestone = (phId, msId) => {
-    setProjects(ps => ps.map(p => p.id === activeProjectId
-      ? { ...p, phases: p.phases.map(ph => ph.id === phId
-          ? { ...ph, milestones: ph.milestones.map(ms => ms.id === msId ? { ...ms, resolved: true } : ms) }
+          ? { ...ph, milestones: [...(ph.milestones || []), { id: 'ms_' + Date.now(), text, resolved: false, replies: [] }] }
           : ph) }
       : p))
   }
 
-  // Unavailable
+  const replyMilestone = (phId, msId, text) => {
+    setProjects(ps => ps.map(p => p.id === activeProjectId
+      ? { ...p, phases: p.phases.map(ph => ph.id === phId
+          ? { ...ph, milestones: (ph.milestones || []).map(ms => ms.id === msId
+              ? { ...ms, replies: [...(ms.replies || []), { by: profile?.name, text, ts: new Date().toISOString() }] }
+              : ms) }
+          : ph) }
+      : p))
+  }
+
+  const resolveMilestone = (phId, msId) => {
+    setProjects(ps => ps.map(p => p.id === activeProjectId
+      ? { ...p, phases: p.phases.map(ph => ph.id === phId
+          ? { ...ph, milestones: (ph.milestones || []).map(ms => ms.id === msId ? { ...ms, resolved: true } : ms) }
+          : ph) }
+      : p))
+  }
+
   const addUnavailable = (entry) => {
     setProjects(ps => ps.map(p => p.id === activeProjectId
       ? { ...p, unavailable: [...(p.unavailable || []), { ...entry, id: 'un_' + Date.now() }] }
       : p))
   }
+
   const deleteUnavailable = (id) => {
     setProjects(ps => ps.map(p => p.id === activeProjectId
       ? { ...p, unavailable: (p.unavailable || []).filter(u => u.id !== id) }
       : p))
   }
 
-  // Messages
   const sendMessage = (thread, text) => {
     const newMsg = { id: 'm_' + Date.now(), from: profile?.role, fromName: profile?.name, text, ts: new Date().toISOString(), read: false }
     setProjects(ps => ps.map(p => p.id === activeProjectId
@@ -415,77 +410,78 @@ export function AppProvider({ children }) {
       : p))
   }
 
-  // Documents
   const addDocument = (doc) => {
     setProjects(ps => ps.map(p => p.id === activeProjectId
-      ? { ...p, documents: [...(p.documents || []), { ...doc, id: 'd_' + Date.now(), date: new Date().toISOString().slice(0,10) }] }
+      ? { ...p, documents: [...(p.documents || []), { ...doc, id: 'd_' + Date.now(), date: new Date().toISOString().slice(0, 10) }] }
       : p))
   }
+
   const deleteDocument = (id) => {
     setProjects(ps => ps.map(p => p.id === activeProjectId
       ? { ...p, documents: (p.documents || []).filter(d => d.id !== id) }
       : p))
   }
 
-  // Photos
   const addPhoto = (photo) => {
     setProjects(ps => ps.map(p => p.id === activeProjectId
-      ? { ...p, photos: [...(p.photos || []), { ...photo, id: 'ph_' + Date.now(), date: new Date().toISOString().slice(0,10), uploadedBy: user?.id }] }
+      ? { ...p, photos: [...(p.photos || []), { ...photo, id: 'ph_' + Date.now(), date: new Date().toISOString().slice(0, 10), uploadedBy: user?.id }] }
       : p))
   }
+
   const deletePhoto = (id) => {
     setProjects(ps => ps.map(p => p.id === activeProjectId
       ? { ...p, photos: (p.photos || []).filter(ph => ph.id !== id) }
       : p))
   }
 
-  // Invoices
   const addInvoice = (inv) => {
     setProjects(ps => ps.map(p => p.id === activeProjectId
       ? { ...p, invoices: [...(p.invoices || []), { ...inv, id: 'inv_' + Date.now() }] }
       : p))
   }
+
   const updateInvoice = (id, updates) => {
     setProjects(ps => ps.map(p => p.id === activeProjectId
       ? { ...p, invoices: (p.invoices || []).map(i => i.id === id ? { ...i, ...updates } : i) }
       : p))
   }
+
   const deleteInvoice = (id) => {
     setProjects(ps => ps.map(p => p.id === activeProjectId
       ? { ...p, invoices: (p.invoices || []).filter(i => i.id !== id) }
       : p))
   }
 
-  // Supplier invoices
   const addSupplierInvoice = (inv) => {
     setProjects(ps => ps.map(p => p.id === activeProjectId
       ? { ...p, supplierInvoices: [...(p.supplierInvoices || []), { ...inv, id: 'si_' + Date.now() }] }
       : p))
   }
+
   const deleteSupplierInvoice = (id) => {
     setProjects(ps => ps.map(p => p.id === activeProjectId
       ? { ...p, supplierInvoices: (p.supplierInvoices || []).filter(i => i.id !== id) }
       : p))
   }
 
-  // Labour costs
   const addLabourCost = (cost) => {
     setProjects(ps => ps.map(p => p.id === activeProjectId
       ? { ...p, labourCosts: [...(p.labourCosts || []), { ...cost, id: 'lc_' + Date.now() }] }
       : p))
   }
+
   const deleteLabourCost = (id) => {
     setProjects(ps => ps.map(p => p.id === activeProjectId
       ? { ...p, labourCosts: (p.labourCosts || []).filter(c => c.id !== id) }
       : p))
   }
 
-  // Change requests
   const addChangeRequest = (text) => {
     setProjects(ps => ps.map(p => p.id === activeProjectId
-      ? { ...p, changeRequests: [...(p.changeRequests || []), { id: 'cr_' + Date.now(), text, status: 'Pending', by: profile?.name, date: new Date().toISOString().slice(0,10) }] }
+      ? { ...p, changeRequests: [...(p.changeRequests || []), { id: 'cr_' + Date.now(), text, status: 'Pending', by: profile?.name, date: new Date().toISOString().slice(0, 10) }] }
       : p))
   }
+
   const updateChangeRequest = (id, status) => {
     setProjects(ps => ps.map(p => p.id === activeProjectId
       ? { ...p, changeRequests: (p.changeRequests || []).map(c => c.id === id ? { ...c, status } : c) }
