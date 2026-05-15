@@ -1,6 +1,6 @@
-import { useToast } from './Toast.jsx'
 import { useState, useEffect } from 'react'
 import { useApp } from '../context'
+import { useToast } from './Toast.jsx'
 
 const S = {
   bg: '#0a0f1e', surface: '#0d1525', card: '#111d35',
@@ -24,14 +24,16 @@ const Inp = ({ label, value, onChange, type = 'text', placeholder }) => (
 )
 
 export default function PhaseSheet({ phase, onClose }) {
-  const { updatePhase, deletePhase, addMilestone, replyMilestone, resolveMilestone, user, activeProject } = useApp()
-  const isBuilder = user?.role === 'builder' || user?.role === 'admin'
+  const { updatePhase, deletePhase, addMilestone, replyMilestone, resolveMilestone, profile, activeProject } = useApp()
+  const toast = useToast()
+  const isBuilder = profile?.role === 'builder' || profile?.role === 'admin'
 
   const [form, setForm] = useState({ name: '', start: '', end: '', status: 'Not Started' })
   const [tab, setTab] = useState('details')
   const [newMilestone, setNewMilestone] = useState('')
   const [replies, setReplies] = useState({})
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     if (phase) setForm({ name: phase.name, start: phase.start, end: phase.end, status: phase.status })
@@ -39,23 +41,25 @@ export default function PhaseSheet({ phase, onClose }) {
 
   if (!phase) return null
 
-  const livePhase = activeProject.phases.find(p => p.id === phase.id) || phase
+  const livePhase = activeProject?.phases?.find(p => p.id === phase.id) || phase
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
-  const toast = useToast()
   const save = async () => {
+    setSaving(true)
     await updatePhase(phase.id, form)
-    toast('Phase updated successfully')
+    toast('Phase updated')
+    setSaving(false)
     onClose()
   }
 
   const handleDelete = async () => {
-    if (confirmDelete) { 
+    if (confirmDelete) {
       await deletePhase(phase.id)
       toast('Phase deleted', 'info')
-      onClose() 
+      onClose()
     } else setConfirmDelete(true)
   }
+
   const handleAddMilestone = () => {
     if (!newMilestone.trim()) return
     addMilestone(phase.id, newMilestone.trim())
@@ -72,24 +76,21 @@ export default function PhaseSheet({ phase, onClose }) {
 
   return (
     <>
-      {/* Backdrop */}
       <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: '#000a', zIndex: 200 }} />
-
-      {/* Sheet */}
       <div style={{
         position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 201,
         background: S.card, borderRadius: '20px 20px 0 0',
         borderTop: `2px solid ${S.accent}`,
-        maxHeight: '90vh', display: 'flex', flexDirection: 'column',
+        maxHeight: '92vh', display: 'flex', flexDirection: 'column',
         paddingBottom: 'env(safe-area-inset-bottom)',
       }}>
         {/* Handle */}
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px', flexShrink: 0 }}>
           <div style={{ width: 36, height: 4, background: S.border, borderRadius: 2 }} />
         </div>
 
         {/* Header */}
-        <div style={{ padding: '8px 20px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `1px solid ${S.border}` }}>
+        <div style={{ padding: '8px 20px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `1px solid ${S.border}`, flexShrink: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ width: 12, height: 12, borderRadius: '50%', background: statusColor }} />
             <span style={{ fontSize: 17, fontWeight: 800, color: S.text }}>{form.name || 'Phase'}</span>
@@ -98,7 +99,7 @@ export default function PhaseSheet({ phase, onClose }) {
         </div>
 
         {/* Tabs */}
-        <div style={{ display: 'flex', padding: '10px 20px 0', gap: 6, borderBottom: `1px solid ${S.border}` }}>
+        <div style={{ display: 'flex', padding: '10px 20px 0', gap: 6, borderBottom: `1px solid ${S.border}`, flexShrink: 0 }}>
           {['details', 'milestones'].map(t => (
             <button key={t} onClick={() => setTab(t)} style={{
               padding: '7px 16px', borderRadius: '8px 8px 0 0', fontSize: 13, fontWeight: 700,
@@ -111,7 +112,7 @@ export default function PhaseSheet({ phase, onClose }) {
         </div>
 
         {/* Scrollable content */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: 20, WebkitOverflowScrolling: 'touch' }}>
 
           {tab === 'details' && (
             <div>
@@ -121,7 +122,7 @@ export default function PhaseSheet({ phase, onClose }) {
                 <Inp label="End date"   value={form.end}   onChange={v => set('end', v)}   type="date" />
               </div>
 
-              <div style={{ marginBottom: 20 }}>
+              <div style={{ marginBottom: 24 }}>
                 <label style={{ display: 'block', fontSize: 10, color: S.muted, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Status</label>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                   {STATUSES.map(s => {
@@ -129,22 +130,36 @@ export default function PhaseSheet({ phase, onClose }) {
                     const color = STATUS_COLORS[s]
                     return (
                       <button key={s} onClick={() => set('status', s)} style={{
-                        padding: '10px', borderRadius: 10, border: `2px solid ${active ? color : S.border}`,
-                        background: active ? color + '22' : S.surface, color: active ? color : S.muted,
+                        padding: '12px', borderRadius: 10,
+                        border: `2px solid ${active ? color : S.border}`,
+                        background: active ? color + '22' : S.surface,
+                        color: active ? color : S.muted,
                         fontWeight: 700, fontSize: 13, cursor: 'pointer',
+                        minHeight: 44,
                       }}>{s}</button>
                     )
                   })}
                 </div>
               </div>
 
+              {/* Save button — always visible */}
               {isBuilder && (
-                <div style={{ display: 'flex', gap: 10 }}>
-                  <button onClick={save} style={{ flex: 1, padding: '14px', background: S.accent, color: S.bg, border: 'none', borderRadius: 12, fontWeight: 800, fontSize: 15, cursor: 'pointer' }}>
-                    Save changes
+                <div style={{ display: 'flex', gap: 10, paddingBottom: 20 }}>
+                  <button onClick={save} disabled={saving} style={{
+                    flex: 1, padding: 14, background: S.accent, color: S.bg,
+                    border: 'none', borderRadius: 12, fontWeight: 800, fontSize: 15,
+                    cursor: 'pointer', opacity: saving ? 0.7 : 1
+                  }}>
+                    {saving ? 'Saving…' : 'Save changes'}
                   </button>
-                  <button onClick={handleDelete} style={{ padding: '14px 16px', background: confirmDelete ? S.red : S.surface, color: confirmDelete ? '#fff' : S.red, border: `1px solid ${S.red}44`, borderRadius: 12, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
-                    {confirmDelete ? 'Confirm delete' : 'Delete'}
+                  <button onClick={handleDelete} style={{
+                    padding: '14px 16px',
+                    background: confirmDelete ? S.red : S.surface,
+                    color: confirmDelete ? '#fff' : S.red,
+                    border: `1px solid ${S.red}44`, borderRadius: 12,
+                    fontWeight: 700, fontSize: 13, cursor: 'pointer'
+                  }}>
+                    {confirmDelete ? 'Confirm' : 'Delete'}
                   </button>
                 </div>
               )}
@@ -163,11 +178,11 @@ export default function PhaseSheet({ phase, onClose }) {
                 </div>
               )}
 
-              {livePhase.milestones.length === 0 && (
+              {(livePhase.milestones || []).length === 0 && (
                 <div style={{ textAlign: 'center', color: S.muted, fontSize: 14, padding: '24px 0' }}>No milestones yet</div>
               )}
 
-              {livePhase.milestones.map(ms => (
+              {(livePhase.milestones || []).map(ms => (
                 <div key={ms.id} style={{ background: S.surface, borderRadius: 12, padding: 14, marginBottom: 10, border: `1px solid ${ms.resolved ? S.green : S.accent}44` }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center', flex: 1 }}>
@@ -182,7 +197,7 @@ export default function PhaseSheet({ phase, onClose }) {
                     )}
                   </div>
 
-                  {ms.replies.map((r, i) => (
+                  {(ms.replies || []).map((r, i) => (
                     <div key={i} style={{ background: S.card, borderRadius: 8, padding: '8px 10px', marginBottom: 6, fontSize: 13 }}>
                       <span style={{ color: S.accent, fontWeight: 700 }}>{r.by}: </span>
                       <span style={{ color: S.muted }}>{r.text}</span>
