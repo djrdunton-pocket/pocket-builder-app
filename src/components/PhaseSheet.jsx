@@ -1,3 +1,4 @@
+import { useToast } from './Toast.jsx'
 import { useState, useEffect } from 'react'
 import { useApp } from '../context'
 
@@ -41,16 +42,20 @@ export default function PhaseSheet({ phase, onClose }) {
   const livePhase = activeProject.phases.find(p => p.id === phase.id) || phase
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
-  const save = () => {
-    updatePhase(phase.id, form)
+  const toast = useToast()
+  const save = async () => {
+    await updatePhase(phase.id, form)
+    toast('Phase updated successfully')
     onClose()
   }
 
-  const handleDelete = () => {
-    if (confirmDelete) { deletePhase(phase.id); onClose() }
-    else setConfirmDelete(true)
+  const handleDelete = async () => {
+    if (confirmDelete) { 
+      await deletePhase(phase.id)
+      toast('Phase deleted', 'info')
+      onClose() 
+    } else setConfirmDelete(true)
   }
-
   const handleAddMilestone = () => {
     if (!newMilestone.trim()) return
     addMilestone(phase.id, newMilestone.trim())

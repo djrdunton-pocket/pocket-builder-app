@@ -1,3 +1,4 @@
+import { useToast } from '../components/Toast.jsx'
 import { useState } from 'react'
 import { useApp } from '../context'
 
@@ -30,8 +31,11 @@ function BuilderDetails() {
     builderAddress: activeProject?.builderAddress || '',
   })
   const set = (k, v) => setDetails(d => ({ ...d, [k]: v }))
-  const save = () => updateActiveProject(details)
-
+  const toast = useToast()
+const save = async () => {
+  await updateActiveProject(details)
+  toast('Builder details saved')
+}
   return (
     <div style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: 14, padding: 20, marginBottom: 16 }}>
       <div style={{ fontSize: 13, fontWeight: 800, color: S.accent, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 16 }}>Builder details</div>
@@ -59,7 +63,11 @@ function ClientDetails() {
     clientAddress: activeProject?.clientAddress || '',
   })
   const set = (k, v) => setDetails(d => ({ ...d, [k]: v }))
-  const save = () => updateActiveProject(details)
+  const toast = useToast()
+  const save = async () => {
+    await updateActiveProject(details)
+    toast('Client details saved')
+  }
 
   return (
     <div style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: 14, padding: 20, marginBottom: 16 }}>
@@ -85,15 +93,20 @@ function SupplierDetails() {
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
   const suppliers = activeProject?.suppliers || []
 
+  const toast = useToast()
   const save = () => {
-    if (!form.supplierName) return
-    updateActiveProject({ suppliers: [...suppliers, { ...form, id: 'sup_' + Date.now() }] })
-    setForm({ supplierName: '', supplierCompany: '', supplierPhone: '', supplierEmail: '' })
-    setShowAdd(false)
-  }
+      if (!form.supplierName) return
+      updateActiveProject({ suppliers: [...suppliers, { ...form, id: 'sup_' + Date.now() }] })
+      setForm({ supplierName: '', supplierCompany: '', supplierPhone: '', supplierEmail: '' })
+      setShowAdd(false)
+      toast('Supplier added')
+    }
 
-  const remove = (id) => updateActiveProject({ suppliers: suppliers.filter(s => s.id !== id) })
-
+    const toast = useToast()
+    const remove = (id) => {
+        updateActiveProject({ suppliers: suppliers.filter(s => s.id !== id) })
+        toast('Supplier removed', 'info')
+      }
   return (
     <div style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: 14, padding: 20, marginBottom: 16 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
@@ -148,7 +161,11 @@ function ProjectSettings() {
   const [newCR, setNewCR] = useState('')
   const [confirmArchive, setConfirmArchive] = useState(false)
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
-  const save = () => updateActiveProject(form)
+  const toast = useToast()
+  const save = async () => {
+    await updateActiveProject(form)
+    toast('Project settings saved')
+  }
 
   return (
     <div style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: 14, padding: 20, marginBottom: 16 }}>

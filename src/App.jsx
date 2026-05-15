@@ -1,3 +1,4 @@
+import { ToastProvider } from './components/Toast.jsx'
 import { useState } from 'react'
 import { AppProvider, useApp } from './context.jsx'
 import BottomNav from './components/BottomNav.jsx'
@@ -313,7 +314,9 @@ function AppRouter() {
 export default function Root() {
   return (
     <AppProvider>
-      <AppRouter />
+      <ToastProvider>
+        <AppRouter />
+      </ToastProvider>
     </AppProvider>
   )
 }
