@@ -1,6 +1,6 @@
-import { useToast } from '../components/Toast.jsx'
 import { useState } from 'react'
 import { useApp } from '../context'
+import { useToast } from '../components/Toast.jsx'
 
 const S = {
   bg: '#0a0f1e', surface: '#0d1525', card: '#111d35',
@@ -22,6 +22,7 @@ const Inp = ({ label, value, onChange, type = 'text', readOnly, placeholder }) =
 
 function BuilderDetails() {
   const { activeProject, updateActiveProject, profile } = useApp()
+  const toast = useToast()
   const canEdit = profile?.role === 'builder' || profile?.role === 'admin'
   const [details, setDetails] = useState({
     builderName: activeProject?.builderName || '',
@@ -31,11 +32,11 @@ function BuilderDetails() {
     builderAddress: activeProject?.builderAddress || '',
   })
   const set = (k, v) => setDetails(d => ({ ...d, [k]: v }))
-  const toast = useToast()
-const save = async () => {
-  await updateActiveProject(details)
-  toast('Builder details saved')
-}
+  const save = async () => {
+    await updateActiveProject(details)
+    toast('Builder details saved')
+  }
+
   return (
     <div style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: 14, padding: 20, marginBottom: 16 }}>
       <div style={{ fontSize: 13, fontWeight: 800, color: S.accent, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 16 }}>Builder details</div>
@@ -55,6 +56,7 @@ const save = async () => {
 
 function ClientDetails() {
   const { activeProject, updateActiveProject, profile } = useApp()
+  const toast = useToast()
   const canEdit = profile?.role === 'client' || profile?.role === 'admin'
   const [details, setDetails] = useState({
     clientName:    activeProject?.clientName    || '',
@@ -63,7 +65,6 @@ function ClientDetails() {
     clientAddress: activeProject?.clientAddress || '',
   })
   const set = (k, v) => setDetails(d => ({ ...d, [k]: v }))
-  const toast = useToast()
   const save = async () => {
     await updateActiveProject(details)
     toast('Client details saved')
@@ -87,26 +88,26 @@ function ClientDetails() {
 
 function SupplierDetails() {
   const { activeProject, updateActiveProject, profile } = useApp()
+  const toast = useToast()
   const canEdit = profile?.role === 'builder' || profile?.role === 'admin'
   const [showAdd, setShowAdd] = useState(false)
   const [form, setForm] = useState({ supplierName: '', supplierCompany: '', supplierPhone: '', supplierEmail: '' })
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
   const suppliers = activeProject?.suppliers || []
 
-  const toast = useToast()
   const save = () => {
-      if (!form.supplierName) return
-      updateActiveProject({ suppliers: [...suppliers, { ...form, id: 'sup_' + Date.now() }] })
-      setForm({ supplierName: '', supplierCompany: '', supplierPhone: '', supplierEmail: '' })
-      setShowAdd(false)
-      toast('Supplier added')
-    }
+    if (!form.supplierName) return
+    updateActiveProject({ suppliers: [...suppliers, { ...form, id: 'sup_' + Date.now() }] })
+    setForm({ supplierName: '', supplierCompany: '', supplierPhone: '', supplierEmail: '' })
+    setShowAdd(false)
+    toast('Supplier added')
+  }
 
-    const toast = useToast()
-    const remove = (id) => {
-        updateActiveProject({ suppliers: suppliers.filter(s => s.id !== id) })
-        toast('Supplier removed', 'info')
-      }
+  const remove = (id) => {
+    updateActiveProject({ suppliers: suppliers.filter(s => s.id !== id) })
+    toast('Supplier removed', 'info')
+  }
+
   return (
     <div style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: 14, padding: 20, marginBottom: 16 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
@@ -150,6 +151,7 @@ function SupplierDetails() {
 
 function ProjectSettings() {
   const { activeProject, updateActiveProject, profile, addChangeRequest, updateChangeRequest, archiveProject, activeProjectId } = useApp()
+  const toast = useToast()
   const isBuilder = profile?.role === 'builder' || profile?.role === 'admin'
   const [form, setForm] = useState({
     name: activeProject?.name || '',
@@ -161,7 +163,7 @@ function ProjectSettings() {
   const [newCR, setNewCR] = useState('')
   const [confirmArchive, setConfirmArchive] = useState(false)
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
-  const toast = useToast()
+
   const save = async () => {
     await updateActiveProject(form)
     toast('Project settings saved')
@@ -221,8 +223,8 @@ function ProjectSettings() {
 
 function SupportChat() {
   const { user, profile, sendSupportNotification } = useApp()
+  const toast = useToast()
   const [message, setMessage] = useState('')
-  const [sent, setSent] = useState(false)
   const [sending, setSending] = useState(false)
 
   const send = async () => {
@@ -233,32 +235,21 @@ function SupportChat() {
       fromEmail: user?.email,
       message: message.trim()
     })
-    setSent(true)
     setSending(false)
     setMessage('')
+    toast('Message sent — we\'ll reply by email', 'success')
   }
 
   return (
     <div style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: 14, padding: 20, marginBottom: 16 }}>
       <div style={{ fontSize: 13, fontWeight: 800, color: S.green, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>Support</div>
-      {sent ? (
-        <div style={{ textAlign: 'center', padding: '16px 0' }}>
-          <div style={{ fontSize: 32, marginBottom: 8 }}>✅</div>
-          <div style={{ fontSize: 14, color: S.text, fontWeight: 600 }}>Message sent</div>
-          <div style={{ fontSize: 12, color: S.muted, marginTop: 4 }}>We'll get back to you by email.</div>
-          <button onClick={() => setSent(false)} style={{ marginTop: 12, padding: '8px 16px', background: S.surface, color: S.muted, border: `1px solid ${S.border}`, borderRadius: 8, fontSize: 13, cursor: 'pointer' }}>Send another</button>
-        </div>
-      ) : (
-        <>
-          <div style={{ fontSize: 13, color: S.muted, marginBottom: 12, lineHeight: 1.6 }}>Have a question or need help? Send us a message and we'll reply to your email.</div>
-          <textarea value={message} onChange={e => setMessage(e.target.value)} placeholder="How can we help?"
-            rows={4} style={{ width: '100%', background: S.surface, border: `1px solid ${S.border}`, borderRadius: 10, padding: '12px 14px', color: S.text, fontSize: 14, outline: 'none', resize: 'none', fontFamily: 'inherit', boxSizing: 'border-box', marginBottom: 10 }} />
-          <button onClick={send} disabled={!message.trim() || sending}
-            style={{ width: '100%', padding: 13, background: S.green, color: '#fff', border: 'none', borderRadius: 12, fontWeight: 800, fontSize: 14, cursor: message.trim() ? 'pointer' : 'default', opacity: message.trim() ? 1 : 0.5 }}>
-            {sending ? 'Sending…' : 'Send message'}
-          </button>
-        </>
-      )}
+      <div style={{ fontSize: 13, color: S.muted, marginBottom: 12, lineHeight: 1.6 }}>Have a question or need help? Send us a message and we'll reply to your email.</div>
+      <textarea value={message} onChange={e => setMessage(e.target.value)} placeholder="How can we help?"
+        rows={4} style={{ width: '100%', background: S.surface, border: `1px solid ${S.border}`, borderRadius: 10, padding: '12px 14px', color: S.text, fontSize: 14, outline: 'none', resize: 'none', fontFamily: 'inherit', boxSizing: 'border-box', marginBottom: 10 }} />
+      <button onClick={send} disabled={!message.trim() || sending}
+        style={{ width: '100%', padding: 13, background: S.green, color: '#fff', border: 'none', borderRadius: 12, fontWeight: 800, fontSize: 14, cursor: message.trim() ? 'pointer' : 'default', opacity: message.trim() ? 1 : 0.5 }}>
+        {sending ? 'Sending…' : 'Send message'}
+      </button>
     </div>
   )
 }
@@ -276,8 +267,7 @@ export default function MoreView() {
   const isClient   = profile.role === 'client'
   const isSupplier = profile.role === 'supplier'
   const isAdmin    = profile.role === 'admin'
-
-  const roleColor = isClient ? S.blue : isSupplier ? S.amber : isBuilder ? S.accent : S.purple
+  const roleColor  = isClient ? S.blue : isSupplier ? S.amber : isBuilder ? S.accent : S.purple
 
   return (
     <div style={{ paddingBottom: 100, fontFamily: "'DM Sans','Segoe UI',sans-serif" }}>
@@ -287,7 +277,6 @@ export default function MoreView() {
       </div>
 
       <div style={{ padding: 16 }}>
-        {/* User card */}
         <div style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: 14, padding: 20, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 14 }}>
           <div style={{ width: 52, height: 52, borderRadius: '50%', background: roleColor + '22', border: `2px solid ${roleColor}66`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 800, color: roleColor, flexShrink: 0 }}>
             {profile.name?.split(' ').map(w => w[0]).join('').slice(0, 2)}
