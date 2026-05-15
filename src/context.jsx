@@ -333,18 +333,40 @@ export function AppProvider({ children }) {
     setProjects(ps => ps.map(p => p.id === id ? { ...p, status: 'active' } : p))
   }
 
-  // Phases (local state for now)
-  const addPhase = (phase) => {
-    setProjects(ps => ps.map(p => p.id === activeProjectId
-      ? { ...p, phases: [...p.phases, { ...phase, id: 'ph_' + Date.now(), milestones: [] }] }
-      : p))
+  const addPhase = async (phase) => {
+    const { data, error } = await supabase.from('phases').insert({
+      project_id: activeProjectId,
+      name: phase.name,
+      start_date: phase.start,
+      end_date: phase.end,
+      status: phase.status || 'Not Started',
+      sort_order: (activeProject?.phases?.length || 0) + 1
+    }).select().single()
+
+    if (data) {
+      const mapped = { id: data.id, name: data.name, start: data.start_date, end: data.end_date, status: data.status, milestones: [] }
+      setProjects(ps => ps.map(p => p.id === activeProjectId
+        ? { ...p, phases: [...p.phases, mapped] }
+        : p))
+    }
   }
-  const updatePhase = (phId, updates) => {
+  const updatePhase = async (phId, updates) => {
+    const dbUpdates = {}
+    if (updates.name !== undefined) dbUpdates.name = updates.name
+    if (updates.start !== undefined) dbUpdates.start_date = updates.start
+    if (updates.end !== undefined) dbUpdates.end_date = updates.end
+    if (updates.status !== undefined) dbUpdates.status = updates.status
+
+    if (Object.keys(dbUpdates).length > 0) {
+      await supabase.from('phases').update(dbUpdates).eq('id', phId)
+    }
+
     setProjects(ps => ps.map(p => p.id === activeProjectId
       ? { ...p, phases: p.phases.map(ph => ph.id === phId ? { ...ph, ...updates } : ph) }
       : p))
   }
-  const deletePhase = (phId) => {
+  const deletePhase = async (phId) => {
+    await supabase.from('phases').delete().eq('id', phId)
     setProjects(ps => ps.map(p => p.id === activeProjectId
       ? { ...p, phases: p.phases.filter(ph => ph.id !== phId) }
       : p))
