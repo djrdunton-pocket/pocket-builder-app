@@ -1,86 +1,28 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import { createClient } from '@supabase/supabase-js'
-// Pocket Builder v2.1
+
 const SUPABASE_URL = 'https://bdmimbwkvdwahbkxkasf.supabase.co'
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJkbWltYndrdmR3YWhia3hrYXNmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2OTc1ODIsImV4cCI6MjA5MjI3MzU4Mn0.Y7K0JOmlgZrQubq24F8KnuOcc1uZBHr5eWjGtHJINNU'
 const RESEND_KEY = 're_CgvXFk51_5RGsU55w6v2XVp67Y7iZfdXA'
 
+// Pocket Builder v2.2
 export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
 
 const Ctx = createContext(null)
 export const useApp = () => useContext(Ctx)
-
-const INITIAL_PROJECT = {
-  id: 'proj-1',
-  name: '4 Bed Detached New Build',
-  address: '12 Maple Drive, Guildford, Surrey',
-  startDate: '2025-05-01',
-  endDate: '2025-11-30',
-  budget: '285000',
-  status: 'active',
-  clientId: null,
-  builderId: null,
-  supplierIds: [],
-  changeRequests: [
-    { id: 'cr1', text: 'Add bi-fold doors to rear elevation', status: 'Pending', by: 'Mr & Mrs Johnson', date: '2025-04-20' }
-  ],
-  phases: [
-    { id: 'ph1', name: 'Groundworks',  start: '2025-05-01', end: '2025-05-28', status: 'Complete',    milestones: [] },
-    { id: 'ph2', name: 'Structure',    start: '2025-06-01', end: '2025-07-31', status: 'In Progress', milestones: [
-      { id: 'ms1', text: 'Structural engineer sign-off needed', resolved: false, replies: [] }
-    ]},
-    { id: 'ph3', name: 'Roofing',      start: '2025-08-01', end: '2025-08-20', status: 'Not Started', milestones: [] },
-    { id: 'ph4', name: 'First Fix',    start: '2025-09-01', end: '2025-09-30', status: 'Not Started', milestones: [] },
-    { id: 'ph5', name: 'Second Fix',   start: '2025-10-01', end: '2025-10-31', status: 'Not Started', milestones: [] },
-    { id: 'ph6', name: 'Finishing',    start: '2025-11-01', end: '2025-11-28', status: 'Not Started', milestones: [] },
-  ],
-  unavailable: [
-    { id: 'un1', label: 'Builder summer shutdown', start: '2025-08-04', end: '2025-08-08', party: 'builder' }
-  ],
-  messages: {
-    client: [
-      { id: 'm1', from: 'builder', fromName: 'Sarah Mitchell', text: 'Site start confirmed for Monday 5th May, 7:30am.', ts: '2025-04-28T09:14:00', read: true },
-      { id: 'm2', from: 'client',  fromName: 'Mr Johnson',     text: 'Great — will there be parking for the team?',    ts: '2025-04-28T10:02:00', read: true },
-    ],
-    supplier: [
-      { id: 's1', from: 'builder', fromName: 'Sarah Mitchell', text: 'Can you quote for the groundworks materials?', ts: '2025-04-27T09:00:00', read: true },
-    ]
-  },
-  documents: [
-    { id: 'd1', name: 'Planning Permission.pdf', uploadedBy: 'u2', uploaderName: 'Sarah Mitchell', uploaderRole: 'builder', date: '2025-01-15', size: '2.4 MB', visibleTo: ['client','supplier'] },
-    { id: 'd2', name: 'Architectural Drawings.pdf', uploadedBy: 'u2', uploaderName: 'Sarah Mitchell', uploaderRole: 'builder', date: '2025-02-20', size: '8.7 MB', visibleTo: ['client'] },
-  ],
-  photos: [
-    { id: 'ph_1', caption: 'Foundation trenches dug', date: '2025-05-10', uploadedBy: 'u2', visibleTo: ['client','supplier'], url: null },
-  ],
-  invoices: [
-    { id: 'inv1', number: 'INV-001', description: 'Groundworks — stage payment', amount: 14500, vat: 2900, dueDate: '2025-06-01', status: 'Paid', paidDate: '2025-05-30' },
-    { id: 'inv2', number: 'INV-002', description: 'Structure — stage payment 1', amount: 28000, vat: 5600, dueDate: '2025-07-01', status: 'Unpaid', paidDate: null },
-    { id: 'inv3', number: 'INV-003', description: 'Structure — stage payment 2', amount: 28000, vat: 5600, dueDate: '2025-08-01', status: 'Overdue', paidDate: null },
-  ],
-  supplierInvoices: [
-    { id: 'si1', supplier: 'Reynolds Materials', description: 'Groundworks materials', amount: 8200,  date: '2025-05-15', status: 'Paid' },
-    { id: 'si2', supplier: 'Reynolds Materials', description: 'Concrete & aggregate',  amount: 4100,  date: '2025-05-22', status: 'Paid' },
-    { id: 'si3', supplier: 'Reynolds Materials', description: 'Structural steel',      amount: 12400, date: '2025-07-10', status: 'Unpaid' },
-  ],
-  labourCosts: [
-    { id: 'lc1', description: 'Groundworks team — 3 weeks', amount: 9600,  date: '2025-05-28' },
-    { id: 'lc2', description: 'Bricklayers — 4 weeks',      amount: 14400, date: '2025-07-31' },
-  ],
-  suppliers: [],
-}
 
 export function AppProvider({ children }) {
   const [user, setUser]           = useState(null)
   const [profile, setProfile]     = useState(null)
   const [page, setPage]           = useState('marketing')
   const [loading, setLoading]     = useState(true)
-  const [projects, setProjects]   = useState([INITIAL_PROJECT])
-  const [activeProjectId, setActiveProjectId] = useState('proj-1')
+  const [projects, setProjects]   = useState([])
+  const [activeProjectId, setActiveProjectId] = useState(null)
   const [activeTab, setActiveTab] = useState('home')
 
-  const activeProject = projects.find(p => p.id === activeProjectId) ?? projects[0] ?? INITIAL_PROJECT
+  const activeProject = projects.find(p => p.id === activeProjectId) || projects[0] || null
 
+  // Auth state
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
@@ -98,6 +40,7 @@ export function AppProvider({ children }) {
       } else {
         setUser(null)
         setProfile(null)
+        setProjects([])
         setPage('marketing')
         setLoading(false)
       }
@@ -107,20 +50,74 @@ export function AppProvider({ children }) {
   }, [])
 
   const fetchProfile = async (userId) => {
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single()
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single()
 
-    if (data) {
-      setProfile(data)
-      if (data.status === 'approved') setPage('app')
-      else setPage('pending')
+      if (error) { setPage('app'); setLoading(false); return }
+
+      if (data) {
+        setProfile(data)
+        if (data.status === 'approved') {
+          setPage('app')
+          await fetchProjects(userId, data.role)
+        } else {
+          setPage('pending')
+        }
+      }
+    } catch (e) {
+      setPage('app')
     }
     setLoading(false)
   }
 
+  const fetchProjects = async (userId, role) => {
+    let query = supabase.from('projects').select('*')
+    if (role === 'builder') query = query.eq('builder_id', userId)
+    else if (role === 'admin') query = query.select('*')
+
+    const { data, error } = await query.order('created_at', { ascending: false })
+    if (data && data.length > 0) {
+      const mapped = data.map(mapProjectFromDB)
+      setProjects(mapped)
+      setActiveProjectId(mapped[0].id)
+    }
+  }
+
+  const mapProjectFromDB = (p) => ({
+    id: p.id,
+    name: p.name,
+    address: p.address || '',
+    startDate: p.start_date || '',
+    endDate: p.end_date || '',
+    budget: p.budget || 0,
+    status: p.status || 'active',
+    builderId: p.builder_id,
+    clientName: p.client_name || '',
+    clientEmail: p.client_email || '',
+    clientPhone: p.client_phone || '',
+    clientAddress: p.client_address || '',
+    builderName: p.builder_name || '',
+    builderCompany: p.builder_company || '',
+    builderPhone: p.builder_phone || '',
+    builderEmail: p.builder_email || '',
+    builderAddress: p.builder_address || '',
+    phases: [],
+    invoices: [],
+    supplierInvoices: [],
+    labourCosts: [],
+    messages: { client: [], supplier: [] },
+    documents: [],
+    photos: [],
+    changeRequests: [],
+    unavailable: [],
+    suppliers: [],
+  })
+
+  // Auth functions
   const signUp = async ({ email, password, name, role, company }) => {
     const { error } = await supabase.auth.signUp({
       email, password,
@@ -132,18 +129,18 @@ export function AppProvider({ children }) {
   }
 
   const signIn = async ({ email, password }) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) return { success: false, error: error.message }
+    if (data?.user) await fetchProfile(data.user.id)
     return { success: true }
   }
 
   const logout = async () => {
     await supabase.auth.signOut()
-    setUser(null)
-    setProfile(null)
-    setPage('marketing')
+    setUser(null); setProfile(null); setProjects([]); setPage('marketing')
   }
 
+  // Email notifications
   const sendAdminNotification = async ({ name, email, company }) => {
     try {
       await fetch('https://api.resend.com/emails', {
@@ -153,7 +150,7 @@ export function AppProvider({ children }) {
           from: 'Pocket Builder <noreply@pocketbuilder.co>',
           to: ['djrdunton@gmail.com'],
           subject: 'New builder sign-up — approval needed',
-          html: `<h2>New builder sign-up</h2><p><strong>Name:</strong> ${name}</p><p><strong>Email:</strong> ${email}</p><p><strong>Company:</strong> ${company || 'Not provided'}</p><p>Log in to approve this account.</p><a href="https://pocketbuilder.co" style="background:#00c9a7;color:#0a0f1e;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;margin-top:12px">Open Pocket Builder</a>`
+          html: `<h2>New builder sign-up</h2><p><strong>Name:</strong> ${name}</p><p><strong>Email:</strong> ${email}</p><p><strong>Company:</strong> ${company || 'Not provided'}</p><a href="https://pocketbuilder.co" style="background:#00c9a7;color:#0a0f1e;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;margin-top:12px">Open Pocket Builder</a>`
         })
       })
     } catch (e) { console.log('Admin notification failed:', e) }
@@ -174,101 +171,198 @@ export function AppProvider({ children }) {
     } catch (e) { console.log('Support email failed:', e) }
   }
 
-  const updateProject = (id, updates) =>
-    setProjects(ps => ps.map(p => p.id === id ? { ...p, ...updates } : p))
+  // Project CRUD
+  const addProject = async (proj) => {
+    const { data, error } = await supabase.from('projects').insert({
+      builder_id: user.id,
+      name: proj.name,
+      address: proj.address,
+      start_date: proj.startDate,
+      end_date: proj.endDate,
+      budget: proj.budget,
+      status: 'active'
+    }).select().single()
 
-  const updateActiveProject = (updates) => updateProject(activeProjectId, updates)
-
-  const addPhase = (phase) => updateActiveProject({
-    phases: [...activeProject.phases, { ...phase, id: 'ph_' + Date.now(), milestones: [] }]
-  })
-  const updatePhase = (phId, updates) => updateActiveProject({
-    phases: activeProject.phases.map(ph => ph.id === phId ? { ...ph, ...updates } : ph)
-  })
-  const deletePhase = (phId) => updateActiveProject({
-    phases: activeProject.phases.filter(ph => ph.id !== phId)
-  })
-  const addMilestone = (phId, text) => updateActiveProject({
-    phases: activeProject.phases.map(ph => ph.id === phId
-      ? { ...ph, milestones: [...ph.milestones, { id: 'ms_' + Date.now(), text, resolved: false, replies: [] }] }
-      : ph)
-  })
-  const replyMilestone = (phId, msId, text) => updateActiveProject({
-    phases: activeProject.phases.map(ph => ph.id === phId
-      ? { ...ph, milestones: ph.milestones.map(ms => ms.id === msId
-          ? { ...ms, replies: [...ms.replies, { by: profile?.name || user?.email, text, ts: new Date().toISOString() }] }
-          : ms) }
-      : ph)
-  })
-  const resolveMilestone = (phId, msId) => updateActiveProject({
-    phases: activeProject.phases.map(ph => ph.id === phId
-      ? { ...ph, milestones: ph.milestones.map(ms => ms.id === msId ? { ...ms, resolved: true } : ms) }
-      : ph)
-  })
-  const addUnavailable = (entry) => updateActiveProject({
-    unavailable: [...activeProject.unavailable, { ...entry, id: 'un_' + Date.now() }]
-  })
-  const deleteUnavailable = (id) => updateActiveProject({
-    unavailable: activeProject.unavailable.filter(u => u.id !== id)
-  })
-  const sendMessage = (thread, text) => {
-    const role = profile?.role || 'builder'
-    const newMsg = { id: 'm_' + Date.now(), from: role, fromName: profile?.name || user?.email, text, ts: new Date().toISOString(), read: false }
-    updateActiveProject({
-      messages: { ...activeProject.messages, [thread]: [...(activeProject.messages[thread] || []), newMsg] }
-    })
-  }
-  const addDocument = (doc) => updateActiveProject({
-    documents: [...activeProject.documents, { ...doc, id: 'd_' + Date.now(), date: new Date().toISOString().slice(0,10) }]
-  })
-  const deleteDocument = (id) => updateActiveProject({
-    documents: activeProject.documents.filter(d => d.id !== id)
-  })
-  const addPhoto = (photo) => updateActiveProject({
-    photos: [...activeProject.photos, { ...photo, id: 'ph_' + Date.now(), date: new Date().toISOString().slice(0,10), uploadedBy: user?.id }]
-  })
-  const deletePhoto = (id) => updateActiveProject({
-    photos: activeProject.photos.filter(p => p.id !== id)
-  })
-  const addInvoice = (inv) => updateActiveProject({
-    invoices: [...activeProject.invoices, { ...inv, id: 'inv_' + Date.now() }]
-  })
-  const updateInvoice = (id, updates) => updateActiveProject({
-    invoices: activeProject.invoices.map(i => i.id === id ? { ...i, ...updates } : i)
-  })
-  const deleteInvoice = (id) => updateActiveProject({
-    invoices: activeProject.invoices.filter(i => i.id !== id)
-  })
-  const addSupplierInvoice = (inv) => updateActiveProject({
-    supplierInvoices: [...activeProject.supplierInvoices, { ...inv, id: 'si_' + Date.now() }]
-  })
-  const deleteSupplierInvoice = (id) => updateActiveProject({
-    supplierInvoices: activeProject.supplierInvoices.filter(i => i.id !== id)
-  })
-  const addLabourCost = (cost) => updateActiveProject({
-    labourCosts: [...activeProject.labourCosts, { ...cost, id: 'lc_' + Date.now() }]
-  })
-  const deleteLabourCost = (id) => updateActiveProject({
-    labourCosts: activeProject.labourCosts.filter(c => c.id !== id)
-  })
-  const addChangeRequest = (text) => updateActiveProject({
-    changeRequests: [...activeProject.changeRequests, { id: 'cr_' + Date.now(), text, status: 'Pending', by: profile?.name || user?.email, date: new Date().toISOString().slice(0,10) }]
-  })
-  const updateChangeRequest = (id, status) => updateActiveProject({
-    changeRequests: activeProject.changeRequests.map(c => c.id === id ? { ...c, status } : c)
-  })
-  const addProject = (proj) => {
-    const id = 'proj_' + Date.now()
-    const newProj = {
-      ...proj, id, status: 'active', supplierIds: [], changeRequests: [],
-      phases: [], unavailable: [], messages: { client: [], supplier: [] },
-      documents: [], photos: [], invoices: [], supplierInvoices: [], labourCosts: [], suppliers: []
+    if (data) {
+      const mapped = mapProjectFromDB(data)
+      setProjects(ps => [mapped, ...ps])
+      setActiveProjectId(mapped.id)
     }
-    setProjects(ps => [...ps, newProj])
-    setActiveProjectId(id)
+    return { success: !error }
   }
-  const archiveProject = (id) => updateProject(id, { status: 'archived' })
-  const reactivateProject = (id) => updateProject(id, { status: 'active' })
+
+  const updateActiveProject = async (updates) => {
+    if (!activeProjectId) return
+    setProjects(ps => ps.map(p => p.id === activeProjectId ? { ...p, ...updates } : p))
+
+    const dbUpdates = {}
+    if (updates.name !== undefined) dbUpdates.name = updates.name
+    if (updates.address !== undefined) dbUpdates.address = updates.address
+    if (updates.startDate !== undefined) dbUpdates.start_date = updates.startDate
+    if (updates.endDate !== undefined) dbUpdates.end_date = updates.endDate
+    if (updates.budget !== undefined) dbUpdates.budget = updates.budget
+    if (updates.status !== undefined) dbUpdates.status = updates.status
+    if (updates.clientName !== undefined) dbUpdates.client_name = updates.clientName
+    if (updates.clientEmail !== undefined) dbUpdates.client_email = updates.clientEmail
+    if (updates.clientPhone !== undefined) dbUpdates.client_phone = updates.clientPhone
+    if (updates.clientAddress !== undefined) dbUpdates.client_address = updates.clientAddress
+    if (updates.builderName !== undefined) dbUpdates.builder_name = updates.builderName
+    if (updates.builderCompany !== undefined) dbUpdates.builder_company = updates.builderCompany
+    if (updates.builderPhone !== undefined) dbUpdates.builder_phone = updates.builderPhone
+    if (updates.builderEmail !== undefined) dbUpdates.builder_email = updates.builderEmail
+    if (updates.builderAddress !== undefined) dbUpdates.builder_address = updates.builderAddress
+
+    if (Object.keys(dbUpdates).length > 0) {
+      await supabase.from('projects').update(dbUpdates).eq('id', activeProjectId)
+    }
+  }
+
+  const archiveProject = async (id) => {
+    await supabase.from('projects').update({ status: 'archived' }).eq('id', id)
+    setProjects(ps => ps.map(p => p.id === id ? { ...p, status: 'archived' } : p))
+  }
+
+  const reactivateProject = async (id) => {
+    await supabase.from('projects').update({ status: 'active' }).eq('id', id)
+    setProjects(ps => ps.map(p => p.id === id ? { ...p, status: 'active' } : p))
+  }
+
+  // Phases (local state for now)
+  const addPhase = (phase) => {
+    setProjects(ps => ps.map(p => p.id === activeProjectId
+      ? { ...p, phases: [...p.phases, { ...phase, id: 'ph_' + Date.now(), milestones: [] }] }
+      : p))
+  }
+  const updatePhase = (phId, updates) => {
+    setProjects(ps => ps.map(p => p.id === activeProjectId
+      ? { ...p, phases: p.phases.map(ph => ph.id === phId ? { ...ph, ...updates } : ph) }
+      : p))
+  }
+  const deletePhase = (phId) => {
+    setProjects(ps => ps.map(p => p.id === activeProjectId
+      ? { ...p, phases: p.phases.filter(ph => ph.id !== phId) }
+      : p))
+  }
+  const addMilestone = (phId, text) => {
+    setProjects(ps => ps.map(p => p.id === activeProjectId
+      ? { ...p, phases: p.phases.map(ph => ph.id === phId
+          ? { ...ph, milestones: [...ph.milestones, { id: 'ms_' + Date.now(), text, resolved: false, replies: [] }] }
+          : ph) }
+      : p))
+  }
+  const replyMilestone = (phId, msId, text) => {
+    setProjects(ps => ps.map(p => p.id === activeProjectId
+      ? { ...p, phases: p.phases.map(ph => ph.id === phId
+          ? { ...ph, milestones: ph.milestones.map(ms => ms.id === msId
+              ? { ...ms, replies: [...ms.replies, { by: profile?.name, text, ts: new Date().toISOString() }] }
+              : ms) }
+          : ph) }
+      : p))
+  }
+  const resolveMilestone = (phId, msId) => {
+    setProjects(ps => ps.map(p => p.id === activeProjectId
+      ? { ...p, phases: p.phases.map(ph => ph.id === phId
+          ? { ...ph, milestones: ph.milestones.map(ms => ms.id === msId ? { ...ms, resolved: true } : ms) }
+          : ph) }
+      : p))
+  }
+
+  // Unavailable
+  const addUnavailable = (entry) => {
+    setProjects(ps => ps.map(p => p.id === activeProjectId
+      ? { ...p, unavailable: [...(p.unavailable || []), { ...entry, id: 'un_' + Date.now() }] }
+      : p))
+  }
+  const deleteUnavailable = (id) => {
+    setProjects(ps => ps.map(p => p.id === activeProjectId
+      ? { ...p, unavailable: (p.unavailable || []).filter(u => u.id !== id) }
+      : p))
+  }
+
+  // Messages
+  const sendMessage = (thread, text) => {
+    const newMsg = { id: 'm_' + Date.now(), from: profile?.role, fromName: profile?.name, text, ts: new Date().toISOString(), read: false }
+    setProjects(ps => ps.map(p => p.id === activeProjectId
+      ? { ...p, messages: { ...p.messages, [thread]: [...(p.messages?.[thread] || []), newMsg] } }
+      : p))
+  }
+
+  // Documents
+  const addDocument = (doc) => {
+    setProjects(ps => ps.map(p => p.id === activeProjectId
+      ? { ...p, documents: [...(p.documents || []), { ...doc, id: 'd_' + Date.now(), date: new Date().toISOString().slice(0,10) }] }
+      : p))
+  }
+  const deleteDocument = (id) => {
+    setProjects(ps => ps.map(p => p.id === activeProjectId
+      ? { ...p, documents: (p.documents || []).filter(d => d.id !== id) }
+      : p))
+  }
+
+  // Photos
+  const addPhoto = (photo) => {
+    setProjects(ps => ps.map(p => p.id === activeProjectId
+      ? { ...p, photos: [...(p.photos || []), { ...photo, id: 'ph_' + Date.now(), date: new Date().toISOString().slice(0,10), uploadedBy: user?.id }] }
+      : p))
+  }
+  const deletePhoto = (id) => {
+    setProjects(ps => ps.map(p => p.id === activeProjectId
+      ? { ...p, photos: (p.photos || []).filter(ph => ph.id !== id) }
+      : p))
+  }
+
+  // Invoices
+  const addInvoice = (inv) => {
+    setProjects(ps => ps.map(p => p.id === activeProjectId
+      ? { ...p, invoices: [...(p.invoices || []), { ...inv, id: 'inv_' + Date.now() }] }
+      : p))
+  }
+  const updateInvoice = (id, updates) => {
+    setProjects(ps => ps.map(p => p.id === activeProjectId
+      ? { ...p, invoices: (p.invoices || []).map(i => i.id === id ? { ...i, ...updates } : i) }
+      : p))
+  }
+  const deleteInvoice = (id) => {
+    setProjects(ps => ps.map(p => p.id === activeProjectId
+      ? { ...p, invoices: (p.invoices || []).filter(i => i.id !== id) }
+      : p))
+  }
+
+  // Supplier invoices
+  const addSupplierInvoice = (inv) => {
+    setProjects(ps => ps.map(p => p.id === activeProjectId
+      ? { ...p, supplierInvoices: [...(p.supplierInvoices || []), { ...inv, id: 'si_' + Date.now() }] }
+      : p))
+  }
+  const deleteSupplierInvoice = (id) => {
+    setProjects(ps => ps.map(p => p.id === activeProjectId
+      ? { ...p, supplierInvoices: (p.supplierInvoices || []).filter(i => i.id !== id) }
+      : p))
+  }
+
+  // Labour costs
+  const addLabourCost = (cost) => {
+    setProjects(ps => ps.map(p => p.id === activeProjectId
+      ? { ...p, labourCosts: [...(p.labourCosts || []), { ...cost, id: 'lc_' + Date.now() }] }
+      : p))
+  }
+  const deleteLabourCost = (id) => {
+    setProjects(ps => ps.map(p => p.id === activeProjectId
+      ? { ...p, labourCosts: (p.labourCosts || []).filter(c => c.id !== id) }
+      : p))
+  }
+
+  // Change requests
+  const addChangeRequest = (text) => {
+    setProjects(ps => ps.map(p => p.id === activeProjectId
+      ? { ...p, changeRequests: [...(p.changeRequests || []), { id: 'cr_' + Date.now(), text, status: 'Pending', by: profile?.name, date: new Date().toISOString().slice(0,10) }] }
+      : p))
+  }
+  const updateChangeRequest = (id, status) => {
+    setProjects(ps => ps.map(p => p.id === activeProjectId
+      ? { ...p, changeRequests: (p.changeRequests || []).map(c => c.id === id ? { ...c, status } : c) }
+      : p))
+  }
 
   const unreadClient   = (activeProject?.messages?.client || []).filter(m => profile?.role === 'builder' ? m.from === 'client' && !m.read : m.from === 'builder' && !m.read).length
   const unreadSupplier = (activeProject?.messages?.supplier || []).filter(m => profile?.role === 'builder' ? m.from === 'supplier' && !m.read : m.from === 'builder' && !m.read).length

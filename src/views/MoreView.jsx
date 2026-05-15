@@ -20,14 +20,14 @@ const Inp = ({ label, value, onChange, type = 'text', readOnly, placeholder }) =
 )
 
 function BuilderDetails() {
-  const { activeProject, updateActiveProject, user } = useApp()
-  const canEdit = user?.role === 'builder' || user?.role === 'admin'
+  const { activeProject, updateActiveProject, profile } = useApp()
+  const canEdit = profile?.role === 'builder' || profile?.role === 'admin'
   const [details, setDetails] = useState({
-    builderName: activeProject.builderName || '',
-    builderCompany: activeProject.builderCompany || '',
-    builderPhone: activeProject.builderPhone || '',
-    builderEmail: activeProject.builderEmail || '',
-    builderAddress: activeProject.builderAddress || '',
+    builderName: activeProject?.builderName || '',
+    builderCompany: activeProject?.builderCompany || '',
+    builderPhone: activeProject?.builderPhone || '',
+    builderEmail: activeProject?.builderEmail || '',
+    builderAddress: activeProject?.builderAddress || '',
   })
   const set = (k, v) => setDetails(d => ({ ...d, [k]: v }))
   const save = () => updateActiveProject(details)
@@ -50,13 +50,13 @@ function BuilderDetails() {
 }
 
 function ClientDetails() {
-  const { activeProject, updateActiveProject, user } = useApp()
-  const canEdit = user?.role === 'client' || user?.role === 'admin'
+  const { activeProject, updateActiveProject, profile } = useApp()
+  const canEdit = profile?.role === 'client' || profile?.role === 'admin'
   const [details, setDetails] = useState({
-    clientName:    activeProject.clientName    || '',
-    clientPhone:   activeProject.clientPhone   || '',
-    clientEmail:   activeProject.clientEmail   || '',
-    clientAddress: activeProject.clientAddress || '',
+    clientName:    activeProject?.clientName    || '',
+    clientPhone:   activeProject?.clientPhone   || '',
+    clientEmail:   activeProject?.clientEmail   || '',
+    clientAddress: activeProject?.clientAddress || '',
   })
   const set = (k, v) => setDetails(d => ({ ...d, [k]: v }))
   const save = () => updateActiveProject(details)
@@ -78,12 +78,12 @@ function ClientDetails() {
 }
 
 function SupplierDetails() {
-  const { activeProject, updateActiveProject, user } = useApp()
-  const canEdit = user?.role === 'builder' || user?.role === 'admin'
+  const { activeProject, updateActiveProject, profile } = useApp()
+  const canEdit = profile?.role === 'builder' || profile?.role === 'admin'
   const [showAdd, setShowAdd] = useState(false)
   const [form, setForm] = useState({ supplierName: '', supplierCompany: '', supplierPhone: '', supplierEmail: '' })
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
-  const suppliers = activeProject.suppliers || []
+  const suppliers = activeProject?.suppliers || []
 
   const save = () => {
     if (!form.supplierName) return
@@ -136,16 +136,17 @@ function SupplierDetails() {
 }
 
 function ProjectSettings() {
-  const { activeProject, updateActiveProject, user, addChangeRequest, updateChangeRequest } = useApp()
-  const isBuilder = user?.role === 'builder' || user?.role === 'admin'
+  const { activeProject, updateActiveProject, profile, addChangeRequest, updateChangeRequest, archiveProject, activeProjectId } = useApp()
+  const isBuilder = profile?.role === 'builder' || profile?.role === 'admin'
   const [form, setForm] = useState({
-    name: activeProject.name || '',
-    address: activeProject.address || '',
-    startDate: activeProject.startDate || '',
-    endDate: activeProject.endDate || '',
-    budget: activeProject.budget || '',
+    name: activeProject?.name || '',
+    address: activeProject?.address || '',
+    startDate: activeProject?.startDate || '',
+    endDate: activeProject?.endDate || '',
+    budget: activeProject?.budget || '',
   })
   const [newCR, setNewCR] = useState('')
+  const [confirmArchive, setConfirmArchive] = useState(false)
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
   const save = () => updateActiveProject(form)
 
@@ -159,7 +160,7 @@ function ProjectSettings() {
         <Inp label="End date"   value={form.endDate}   onChange={v => set('endDate', v)}   type="date" />
       </div>
       <Inp label="Agreed budget (£)" value={form.budget} onChange={v => set('budget', v)} type="number" />
-      <button onClick={save} style={{ width: '100%', padding: 13, background: S.purple, color: '#fff', border: 'none', borderRadius: 12, fontWeight: 800, fontSize: 14, cursor: 'pointer', marginBottom: 20 }}>
+      <button onClick={save} style={{ width: '100%', padding: 13, background: S.purple, color: '#fff', border: 'none', borderRadius: 12, fontWeight: 800, fontSize: 14, cursor: 'pointer', marginBottom: 16 }}>
         Save project settings
       </button>
 
@@ -170,7 +171,7 @@ function ProjectSettings() {
         <button onClick={() => { if (newCR.trim()) { addChangeRequest(newCR.trim()); setNewCR('') } }} disabled={!newCR.trim()}
           style={{ padding: '10px 14px', background: S.accent, color: S.bg, border: 'none', borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: 'pointer', opacity: newCR.trim() ? 1 : 0.5 }}>Add</button>
       </div>
-      {activeProject.changeRequests.map(cr => (
+      {(activeProject?.changeRequests || []).map(cr => (
         <div key={cr.id} style={{ background: S.surface, borderRadius: 10, padding: '10px 12px', marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 13, color: S.text }}>{cr.text}</div>
@@ -187,20 +188,82 @@ function ProjectSettings() {
           </div>
         </div>
       ))}
+
+      {isBuilder && activeProject?.status !== 'archived' && (
+        <div style={{ marginTop: 16, borderTop: `1px solid ${S.border}`, paddingTop: 16 }}>
+          <button onClick={() => confirmArchive ? archiveProject(activeProjectId) : setConfirmArchive(true)}
+            style={{ width: '100%', padding: 13, background: confirmArchive ? S.red : S.surface, color: confirmArchive ? '#fff' : S.red, border: `1px solid ${S.red}44`, borderRadius: 12, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
+            {confirmArchive ? 'Confirm — archive this project' : 'Archive project'}
+          </button>
+          {confirmArchive && <div style={{ fontSize: 11, color: S.muted, textAlign: 'center', marginTop: 6 }}>Project will become view-only. Billing stops next month.</div>}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function SupportChat() {
+  const { user, profile, sendSupportNotification } = useApp()
+  const [message, setMessage] = useState('')
+  const [sent, setSent] = useState(false)
+  const [sending, setSending] = useState(false)
+
+  const send = async () => {
+    if (!message.trim()) return
+    setSending(true)
+    await sendSupportNotification({
+      fromName: profile?.name || user?.email,
+      fromEmail: user?.email,
+      message: message.trim()
+    })
+    setSent(true)
+    setSending(false)
+    setMessage('')
+  }
+
+  return (
+    <div style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: 14, padding: 20, marginBottom: 16 }}>
+      <div style={{ fontSize: 13, fontWeight: 800, color: S.green, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>Support</div>
+      {sent ? (
+        <div style={{ textAlign: 'center', padding: '16px 0' }}>
+          <div style={{ fontSize: 32, marginBottom: 8 }}>✅</div>
+          <div style={{ fontSize: 14, color: S.text, fontWeight: 600 }}>Message sent</div>
+          <div style={{ fontSize: 12, color: S.muted, marginTop: 4 }}>We'll get back to you by email.</div>
+          <button onClick={() => setSent(false)} style={{ marginTop: 12, padding: '8px 16px', background: S.surface, color: S.muted, border: `1px solid ${S.border}`, borderRadius: 8, fontSize: 13, cursor: 'pointer' }}>Send another</button>
+        </div>
+      ) : (
+        <>
+          <div style={{ fontSize: 13, color: S.muted, marginBottom: 12, lineHeight: 1.6 }}>Have a question or need help? Send us a message and we'll reply to your email.</div>
+          <textarea value={message} onChange={e => setMessage(e.target.value)} placeholder="How can we help?"
+            rows={4} style={{ width: '100%', background: S.surface, border: `1px solid ${S.border}`, borderRadius: 10, padding: '12px 14px', color: S.text, fontSize: 14, outline: 'none', resize: 'none', fontFamily: 'inherit', boxSizing: 'border-box', marginBottom: 10 }} />
+          <button onClick={send} disabled={!message.trim() || sending}
+            style={{ width: '100%', padding: 13, background: S.green, color: '#fff', border: 'none', borderRadius: 12, fontWeight: 800, fontSize: 14, cursor: message.trim() ? 'pointer' : 'default', opacity: message.trim() ? 1 : 0.5 }}>
+            {sending ? 'Sending…' : 'Send message'}
+          </button>
+        </>
+      )}
     </div>
   )
 }
 
 export default function MoreView() {
-  const { user, logout } = useApp()
-  const isBuilder = user?.role === 'builder' || user?.role === 'admin'
-  const isClient  = user?.role === 'client'
-  const isSupplier = user?.role === 'supplier'
+  const { user, profile, logout } = useApp()
+
+  if (!user || !profile) return (
+    <div style={{ padding: 20, textAlign: 'center', color: '#5a7a9a', fontFamily: "'DM Sans','Segoe UI',sans-serif" }}>
+      <div style={{ marginTop: 40 }}>Loading...</div>
+    </div>
+  )
+
+  const isBuilder  = profile.role === 'builder' || profile.role === 'admin'
+  const isClient   = profile.role === 'client'
+  const isSupplier = profile.role === 'supplier'
+  const isAdmin    = profile.role === 'admin'
 
   const roleColor = isClient ? S.blue : isSupplier ? S.amber : isBuilder ? S.accent : S.purple
 
   return (
-    <div style={{ paddingBottom: 100 }}>
+    <div style={{ paddingBottom: 100, fontFamily: "'DM Sans','Segoe UI',sans-serif" }}>
       <div style={{ background: S.surface, borderBottom: `1px solid ${S.border}`, padding: '16px 20px' }}>
         <div style={{ fontSize: 20, fontWeight: 900, color: S.text, marginBottom: 2 }}>More</div>
         <div style={{ fontSize: 12, color: S.muted }}>Settings & details</div>
@@ -210,32 +273,31 @@ export default function MoreView() {
         {/* User card */}
         <div style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: 14, padding: 20, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 14 }}>
           <div style={{ width: 52, height: 52, borderRadius: '50%', background: roleColor + '22', border: `2px solid ${roleColor}66`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 800, color: roleColor, flexShrink: 0 }}>
-            {user?.name.split(' ').map(w => w[0]).join('').slice(0, 2)}
+            {profile.name?.split(' ').map(w => w[0]).join('').slice(0, 2)}
           </div>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: S.text }}>{user?.name}</div>
-            <div style={{ fontSize: 12, color: S.muted }}>{user?.email}</div>
-            <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 9px', borderRadius: 20, color: roleColor, background: roleColor + '22', display: 'inline-block', marginTop: 4, textTransform: 'capitalize' }}>{user?.role}</span>
+            <div style={{ fontSize: 16, fontWeight: 800, color: S.text }}>{profile.name}</div>
+            <div style={{ fontSize: 12, color: S.muted }}>{user.email}</div>
+            <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 9px', borderRadius: 20, color: roleColor, background: roleColor + '22', display: 'inline-block', textTransform: 'capitalize' }}>{profile.role}</span>
+              <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 9px', borderRadius: 20, color: profile.plan === 'premium' ? S.amber : S.muted, background: (profile.plan === 'premium' ? S.amber : S.muted) + '22', display: 'inline-block', textTransform: 'capitalize' }}>{profile.plan}</span>
+            </div>
           </div>
         </div>
 
-        {/* Role-based sections */}
-        {(isBuilder) && <ProjectSettings />}
-        {(isBuilder) && <BuilderDetails />}
-        {(isBuilder) && <SupplierDetails />}
-        {(isClient)  && <ClientDetails />}
-        {(isClient)  && <ProjectSettings />}
-        {(isSupplier) && <SupplierDetails />}
-        {user?.role === 'admin' && (
-          <>
-            <ProjectSettings />
-            <BuilderDetails />
-            <ClientDetails />
-            <SupplierDetails />
-          </>
-        )}
+        {isAdmin    && <ProjectSettings />}
+        {isAdmin    && <BuilderDetails />}
+        {isAdmin    && <ClientDetails />}
+        {isAdmin    && <SupplierDetails />}
+        {isBuilder && !isAdmin && <ProjectSettings />}
+        {isBuilder && !isAdmin && <BuilderDetails />}
+        {isBuilder && !isAdmin && <SupplierDetails />}
+        {isClient   && <ClientDetails />}
+        {isClient   && <ProjectSettings />}
+        {isSupplier && <SupplierDetails />}
 
-        {/* Sign out */}
+        <SupportChat />
+
         <button onClick={logout} style={{ width: '100%', padding: 14, background: S.surface, color: S.red, border: `1px solid ${S.red}33`, borderRadius: 12, fontWeight: 700, fontSize: 15, cursor: 'pointer', marginTop: 8 }}>
           Sign out
         </button>
