@@ -7,6 +7,7 @@ import TimelineView from './views/TimelineView.jsx'
 import FinanceView from './views/FinanceView.jsx'
 import CommsView from './views/CommsView.jsx'
 import MoreView from './views/MoreView.jsx'
+import { supabase } from './context.jsx'
 
 const S = {
   bg: '#0a0f1e', surface: '#0d1525', card: '#111d35',
@@ -145,6 +146,10 @@ function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError]       = useState('')
   const [loading, setLoading]   = useState(false)
+  const [showForgot, setShowForgot] = useState(false)
+  const [forgotEmail, setForgotEmail] = useState('')
+  const [forgotSent, setForgotSent] = useState(false)
+  const [forgotLoading, setForgotLoading] = useState(false)
 
   const go = async () => {
     if (!email || !password) { setError('Please enter your email and password.'); return }
@@ -152,6 +157,52 @@ function LoginPage() {
     const result = await signIn({ email, password })
     if (!result.success) setError(result.error)
     setLoading(false)
+  }
+
+  const sendReset = async () => {
+    if (!forgotEmail) return
+    setForgotLoading(true)
+    await supabase.auth.resetPasswordForEmail(forgotEmail, {
+      redirectTo: 'https://pocketbuilder.co.uk'
+    })
+    setForgotSent(true)
+    setForgotLoading(false)
+  }
+
+  if (showForgot) {
+    return (
+      <div style={{ minHeight: '100vh', background: S.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, fontFamily: "'DM Sans','Segoe UI',sans-serif" }}>
+        <div style={{ width: '100%', maxWidth: 400 }}>
+          <div style={{ textAlign: 'center', marginBottom: 32 }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 14 }}><Logo size={56} /></div>
+            <div style={{ fontSize: 24, fontWeight: 900, color: S.text, letterSpacing: '-0.02em' }}>Reset password</div>
+            <div style={{ fontSize: 13, color: S.muted, marginTop: 4 }}>We'll send you a reset link</div>
+          </div>
+          {forgotSent ? (
+            <div style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: 16, padding: 24, textAlign: 'center' }}>
+              <div style={{ fontSize: 48, marginBottom: 16 }}>📧</div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: S.text, marginBottom: 8 }}>Check your email</div>
+              <div style={{ fontSize: 13, color: S.muted, lineHeight: 1.7, marginBottom: 20 }}>We've sent a reset link to {forgotEmail}. Click it to set a new password.</div>
+              <button onClick={() => { setShowForgot(false); setForgotSent(false); setForgotEmail('') }}
+                style={{ padding: '12px 24px', background: S.accent, color: S.bg, border: 'none', borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
+                Back to sign in
+              </button>
+            </div>
+          ) : (
+            <div style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: 16, padding: 24 }}>
+              <Inp label="Email address" value={forgotEmail} onChange={setForgotEmail} type="email" placeholder="your@email.com" />
+              <button onClick={sendReset} disabled={!forgotEmail || forgotLoading}
+                style={{ width: '100%', padding: 14, background: S.accent, color: S.bg, border: 'none', borderRadius: 12, fontWeight: 800, fontSize: 15, cursor: 'pointer', opacity: (!forgotEmail || forgotLoading) ? 0.5 : 1 }}>
+                {forgotLoading ? 'Sending…' : 'Send reset link →'}
+              </button>
+            </div>
+          )}
+          <div style={{ marginTop: 12, textAlign: 'center' }}>
+            <button onClick={() => setShowForgot(false)} style={{ background: 'none', border: 'none', color: S.muted, cursor: 'pointer', fontSize: 13 }}>← Back to sign in</button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -165,6 +216,9 @@ function LoginPage() {
         <div style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: 16, padding: 24, marginBottom: 16 }}>
           <Inp label="Email" value={email} onChange={setEmail} type="email" placeholder="your@email.com" />
           <Inp label="Password" value={password} onChange={setPassword} type="password" placeholder="••••••••••••" />
+          <div style={{ textAlign: 'right', marginBottom: 14, marginTop: -8 }}>
+            <button onClick={() => setShowForgot(true)} style={{ background: 'none', border: 'none', color: S.muted, cursor: 'pointer', fontSize: 12 }}>Forgot password?</button>
+          </div>
           {error && <div style={{ color: S.red, fontSize: 13, marginBottom: 12, padding: '9px 12px', background: S.red + '15', borderRadius: 8 }}>{error}</div>}
           <button onClick={go} disabled={loading} style={{ width: '100%', padding: 14, background: S.accent, color: S.bg, border: 'none', borderRadius: 12, fontWeight: 800, fontSize: 15, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}>
             {loading ? 'Signing in…' : 'Sign in →'}
@@ -280,6 +334,61 @@ function SignUpPage() {
   )
 }
 
+function ResetPasswordPage() {
+  const { setPage } = useApp()
+  const [password, setPassword] = useState('')
+  const [confirm, setConfirm]   = useState('')
+  const [error, setError]       = useState('')
+  const [loading, setLoading]   = useState(false)
+  const [done, setDone]         = useState(false)
+
+  const save = async () => {
+    if (!password || !confirm) { setError('Please enter a new password.'); return }
+    if (password !== confirm) { setError('Passwords do not match.'); return }
+    if (password.length < 8) { setError('Password must be at least 8 characters.'); return }
+    setLoading(true); setError('')
+    const { error } = await supabase.auth.updateUser({ password })
+    if (error) { setError(error.message); setLoading(false); return }
+    setDone(true)
+    setLoading(false)
+  }
+
+  if (done) {
+    return (
+      <div style={{ minHeight: '100vh', background: S.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, fontFamily: "'DM Sans','Segoe UI',sans-serif" }}>
+        <div style={{ width: '100%', maxWidth: 400, textAlign: 'center' }}>
+          <div style={{ fontSize: 64, marginBottom: 20 }}>✅</div>
+          <div style={{ fontSize: 22, fontWeight: 900, color: S.text, marginBottom: 12 }}>Password updated!</div>
+          <div style={{ fontSize: 14, color: S.muted, lineHeight: 1.7, marginBottom: 24 }}>Your password has been changed. Sign in with your new password.</div>
+          <button onClick={() => setPage('login')} style={{ padding: '12px 28px', background: S.accent, color: S.bg, border: 'none', borderRadius: 12, fontWeight: 800, fontSize: 15, cursor: 'pointer' }}>
+            Sign in →
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ minHeight: '100vh', background: S.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, fontFamily: "'DM Sans','Segoe UI',sans-serif" }}>
+      <div style={{ width: '100%', maxWidth: 400 }}>
+        <div style={{ textAlign: 'center', marginBottom: 32 }}>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 14 }}><Logo size={56} /></div>
+          <div style={{ fontSize: 24, fontWeight: 900, color: S.text, letterSpacing: '-0.02em' }}>New password</div>
+          <div style={{ fontSize: 13, color: S.muted, marginTop: 4 }}>Choose a strong password</div>
+        </div>
+        <div style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: 16, padding: 24, marginBottom: 16 }}>
+          <Inp label="New password" value={password} onChange={setPassword} type="password" placeholder="Min. 8 characters" />
+          <Inp label="Confirm password" value={confirm} onChange={setConfirm} type="password" placeholder="Repeat password" />
+          {error && <div style={{ color: S.red, fontSize: 13, marginBottom: 12, padding: '9px 12px', background: S.red + '15', borderRadius: 8 }}>{error}</div>}
+          <button onClick={save} disabled={loading} style={{ width: '100%', padding: 14, background: S.accent, color: S.bg, border: 'none', borderRadius: 12, fontWeight: 800, fontSize: 15, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}>
+            {loading ? 'Saving…' : 'Set new password →'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function PendingPage() {
   const { logout, profile } = useApp()
   return (
@@ -333,17 +442,22 @@ function AppShell() {
 }
 
 function AppRouter() {
-  const { page, loading } = useApp()
+  const { page, setPage, loading } = useApp()
+  const [isReset, setIsReset] = useState(false)
 
   useEffect(() => {
     const hash = window.location.hash
-    if (hash && hash.includes('access_token')) {
+    if (hash && hash.includes('type=recovery')) {
+      setIsReset(true)
+      window.location.hash = ''
+    } else if (hash && hash.includes('access_token')) {
       window.location.hash = ''
       window.location.href = 'https://pocketbuilder.co.uk'
     }
   }, [])
 
-  if (loading)              return <LoadingScreen />
+  if (loading)   return <LoadingScreen />
+  if (isReset)   return <ResetPasswordPage />
   if (page === 'marketing') return <MarketingPage />
   if (page === 'login')     return <LoginPage />
   if (page === 'signup')    return <SignUpPage />
