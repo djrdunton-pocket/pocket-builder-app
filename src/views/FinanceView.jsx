@@ -41,9 +41,9 @@ const Inp = ({ label, value, onChange, type = 'text', placeholder }) => (
 function AddInvoiceSheet({ onClose }) {
   const { addInvoice, activeProject } = useApp()
   const nextNum = `INV-${String((activeProject?.invoices?.length || 0) + 1).padStart(3, '0')}`
-  const [form, setForm] = useState({ number: nextNum, description: '', amount: '', vatRate: 20, dueDate: '', status: 'Unpaid' })
+  const [form, setForm] = useState({ number: nextNum, description: '', amount: '', vatRate: 20, dueDate: '', status: 'Unpaid', vatEnabled: true })
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
-  const vat = Math.round((Number(form.amount) || 0) * form.vatRate / 100)
+  const vat = form.vatEnabled ? Math.round((Number(form.amount) || 0) * form.vatRate / 100) : 0
   const total = (Number(form.amount) || 0) + vat
 
   const save = () => {
@@ -57,16 +57,53 @@ function AddInvoiceSheet({ onClose }) {
       <Inp label="Invoice number" value={form.number} onChange={v => set('number', v)} />
       <Inp label="Description" value={form.description} onChange={v => set('description', v)} placeholder="e.g. Groundworks — stage payment" />
       <Inp label="Amount ex-VAT (£)" value={form.amount} onChange={v => set('amount', v)} type="number" placeholder="14500" />
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
-        <Inp label="VAT rate (%)" value={form.vatRate} onChange={v => set('vatRate', Number(v))} type="number" />
-        <Inp label="Due date" value={form.dueDate} onChange={v => set('dueDate', v)} type="date" />
+
+      <div style={{ marginBottom: 14 }}>
+        <label style={{ display: 'block', fontSize: 10, color: S.muted, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>VAT</label>
+        <div style={{ display: 'flex', gap: 8, marginBottom: form.vatEnabled ? 10 : 0 }}>
+          <button onClick={() => set('vatEnabled', true)} style={{ flex: 1, padding: '10px', borderRadius: 10, border: `2px solid ${form.vatEnabled ? S.accent : S.border}`, background: form.vatEnabled ? S.accent + '22' : S.surface, color: form.vatEnabled ? S.accent : S.muted, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+            VAT applies
+          </button>
+          <button onClick={() => set('vatEnabled', false)} style={{ flex: 1, padding: '10px', borderRadius: 10, border: `2px solid ${!form.vatEnabled ? S.accent : S.border}`, background: !form.vatEnabled ? S.accent + '22' : S.surface, color: !form.vatEnabled ? S.accent : S.muted, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+            No VAT
+          </button>
+        </div>
+        {form.vatEnabled && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: S.surface, borderRadius: 10, padding: '10px 14px', border: `1px solid ${S.border}` }}>
+            <span style={{ fontSize: 13, color: S.muted, flex: 1 }}>VAT rate</span>
+            {[5, 20].map(r => (
+              <button key={r} onClick={() => set('vatRate', r)} style={{ padding: '6px 14px', borderRadius: 8, border: `1.5px solid ${form.vatRate === r ? S.accent : S.border}`, background: form.vatRate === r ? S.accent + '22' : 'transparent', color: form.vatRate === r ? S.accent : S.muted, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+                {r}%
+              </button>
+            ))}
+            <input type="number" value={form.vatRate} onChange={e => set('vatRate', Number(e.target.value))}
+              style={{ width: 56, background: 'transparent', border: `1px solid ${S.border}`, borderRadius: 8, padding: '6px 8px', color: S.text, fontSize: 13, outline: 'none', textAlign: 'center' }} />
+          </div>
+        )}
       </div>
+
+      <Inp label="Due date" value={form.dueDate} onChange={v => set('dueDate', v)} type="date" />
+
       {form.amount && (
-        <div style={{ background: S.surface, borderRadius: 10, padding: '12px 14px', marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
-          <span style={{ color: S.muted, fontSize: 13 }}>Total inc. VAT</span>
-          <span style={{ color: S.accent, fontWeight: 800, fontSize: 16, fontFamily: 'monospace' }}>{fmt(total)}</span>
+        <div style={{ background: S.surface, borderRadius: 10, padding: '12px 14px', marginBottom: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: form.vatEnabled ? 4 : 0 }}>
+            <span style={{ color: S.muted, fontSize: 13 }}>Net amount</span>
+            <span style={{ color: S.text, fontSize: 13, fontFamily: 'monospace' }}>£{Number(form.amount).toLocaleString('en-GB')}</span>
+          </div>
+          {form.vatEnabled && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+              <span style={{ color: S.muted, fontSize: 13 }}>VAT ({form.vatRate}%)</span>
+              <span style={{ color: S.text, fontSize: 13, fontFamily: 'monospace' }}>£{vat.toLocaleString('en-GB')}</span>
+            </div>
+          )}
+          <div style={{ height: 1, background: S.border, margin: '8px 0' }} />
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ color: S.muted, fontSize: 13 }}>Total</span>
+            <span style={{ color: S.accent, fontWeight: 800, fontSize: 16, fontFamily: 'monospace' }}>£{total.toLocaleString('en-GB')}</span>
+          </div>
         </div>
       )}
+
       <button onClick={save} disabled={!form.description || !form.amount || !form.dueDate}
         style={{ width: '100%', padding: 14, background: S.accent, color: S.bg, border: 'none', borderRadius: 12, fontWeight: 800, fontSize: 15, cursor: 'pointer', opacity: (!form.description || !form.amount || !form.dueDate) ? 0.5 : 1 }}>
         Create invoice
@@ -83,15 +120,19 @@ function InvoiceDetailSheet({ invoice, onClose }) {
   const handleDelete = () => { if (confirmDelete) { deleteInvoice(invoice.id); onClose() } else setConfirmDelete(true) }
   const STATUS_COLORS = { Paid: S.green, Unpaid: S.amber, Overdue: S.red }
   const color = STATUS_COLORS[invoice.status] || S.muted
+  const hasVat = (invoice.vat || 0) > 0
 
   return (
     <Sheet title={invoice.number} onClose={onClose}>
       <div style={{ background: S.surface, borderRadius: 12, padding: 16, marginBottom: 16 }}>
         <div style={{ fontSize: 13, color: S.muted, marginBottom: 4 }}>{invoice.description}</div>
-        <div style={{ fontSize: 28, fontWeight: 900, color: S.text, fontFamily: 'monospace', marginBottom: 8 }}>{fmt(invoice.amount + invoice.vat)}</div>
+        <div style={{ fontSize: 28, fontWeight: 900, color: S.text, fontFamily: 'monospace', marginBottom: 8 }}>
+          £{((invoice.amount || 0) + (invoice.vat || 0)).toLocaleString('en-GB')}
+        </div>
         <div style={{ display: 'flex', gap: 16, fontSize: 12, color: S.muted }}>
-          <span>ex-VAT {fmt(invoice.amount)}</span>
-          <span>VAT {fmt(invoice.vat)}</span>
+          <span>Net £{(invoice.amount || 0).toLocaleString('en-GB')}</span>
+          {hasVat && <span>VAT £{(invoice.vat || 0).toLocaleString('en-GB')}</span>}
+          {!hasVat && <span style={{ color: S.accent }}>No VAT</span>}
         </div>
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
@@ -169,22 +210,23 @@ function AllProjectsPL() {
   })
 
   const totals = projectsInYear.reduce((acc, p) => {
-    const income      = (p.invoices || []).reduce((s, i) => s + (i.amount || 0) + (i.vat || 0), 0)
-    const received    = (p.invoices || []).filter(i => i.status === 'Paid').reduce((s, i) => s + (i.amount || 0) + (i.vat || 0), 0)
-    const supplier    = (p.supplierInvoices || []).reduce((s, i) => s + (i.amount || 0), 0)
-    const labour      = (p.labourCosts || []).reduce((s, i) => s + (i.amount || 0), 0)
-    const costs       = supplier + labour
+    const net      = (p.invoices || []).reduce((s, i) => s + (i.amount || 0), 0)
+    const vat      = (p.invoices || []).reduce((s, i) => s + (i.vat || 0), 0)
+    const received = (p.invoices || []).filter(i => i.status === 'Paid').reduce((s, i) => s + (i.amount || 0), 0)
+    const costs    = (p.supplierInvoices || []).reduce((s, i) => s + (i.amount || 0), 0) + (p.labourCosts || []).reduce((s, i) => s + (i.amount || 0), 0)
     return {
-      income:   acc.income   + income,
+      net:      acc.net      + net,
+      vat:      acc.vat      + vat,
       received: acc.received + received,
       costs:    acc.costs    + costs,
       margin:   acc.margin   + (received - costs),
     }
-  }, { income: 0, received: 0, costs: 0, margin: 0 })
+  }, { net: 0, vat: 0, received: 0, costs: 0, margin: 0 })
+
+  const hasVat = totals.vat > 0
 
   return (
     <div>
-      {/* Year selector */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 20, overflowX: 'auto' }}>
         {years.map(y => (
           <button key={y} onClick={() => setYear(y)} style={{ flexShrink: 0, padding: '7px 16px', borderRadius: 20, fontSize: 13, fontWeight: 700, border: `1.5px solid ${year === y ? S.accent : S.border}`, background: year === y ? S.accent + '22' : S.surface, color: year === y ? S.accent : S.muted, cursor: 'pointer' }}>
@@ -193,16 +235,22 @@ function AllProjectsPL() {
         ))}
       </div>
 
-      {/* Summary cards */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
         <div style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: 12, padding: 16 }}>
           <div style={{ fontSize: 11, color: S.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Income</div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-            <span style={{ fontSize: 13, color: S.muted }}>Total invoiced</span>
-            <span style={{ fontSize: 13, fontWeight: 700, color: S.text, fontFamily: 'monospace' }}>{fmt(totals.income)}</span>
+            <span style={{ fontSize: 13, color: S.muted }}>Net invoiced (ex-VAT)</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: S.text, fontFamily: 'monospace' }}>{fmt(totals.net)}</span>
           </div>
+          {hasVat && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+              <span style={{ fontSize: 13, color: S.muted }}>VAT collected</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: S.muted, fontFamily: 'monospace' }}>{fmt(totals.vat)}</span>
+            </div>
+          )}
+          <div style={{ height: 1, background: S.border, margin: '8px 0' }} />
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 13, color: S.muted }}>Received</span>
+            <span style={{ fontSize: 13, color: S.muted }}>Net received</span>
             <span style={{ fontSize: 13, fontWeight: 700, color: S.green, fontFamily: 'monospace' }}>{fmt(totals.received)}</span>
           </div>
         </div>
@@ -216,24 +264,24 @@ function AllProjectsPL() {
         </div>
 
         <div style={{ background: totals.margin >= 0 ? S.green + '15' : S.red + '15', border: `1px solid ${totals.margin >= 0 ? S.green : S.red}44`, borderRadius: 12, padding: 16 }}>
-          <div style={{ fontSize: 11, color: S.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Total margin {year}</div>
+          <div style={{ fontSize: 11, color: S.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Net margin {year}</div>
           <div style={{ fontSize: 32, fontWeight: 900, color: totals.margin >= 0 ? S.green : S.red, fontFamily: 'monospace' }}>{fmt(totals.margin)}</div>
           {totals.received > 0 && (
-            <div style={{ fontSize: 12, color: S.muted, marginTop: 4 }}>{Math.round(totals.margin / totals.received * 100)}% margin on received income</div>
+            <div style={{ fontSize: 12, color: S.muted, marginTop: 4 }}>{Math.round(totals.margin / totals.received * 100)}% margin on net received</div>
+          )}
+          {hasVat && (
+            <div style={{ fontSize: 11, color: S.muted, marginTop: 6, padding: '4px 8px', background: S.surface, borderRadius: 6, display: 'inline-block' }}>VAT excluded from margin</div>
           )}
         </div>
       </div>
 
-      {/* Per project breakdown */}
-      <div style={{ fontSize: 12, fontWeight: 700, color: S.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>
-        Per project — {year}
-      </div>
+      <div style={{ fontSize: 12, fontWeight: 700, color: S.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Per project — {year}</div>
       {projectsInYear.length === 0 && (
         <div style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: 12, padding: 24, textAlign: 'center', color: S.muted, fontSize: 14 }}>No projects in {year}</div>
       )}
       {projectsInYear.map(p => {
-        const income   = (p.invoices || []).reduce((s, i) => s + (i.amount || 0) + (i.vat || 0), 0)
-        const received = (p.invoices || []).filter(i => i.status === 'Paid').reduce((s, i) => s + (i.amount || 0) + (i.vat || 0), 0)
+        const net      = (p.invoices || []).reduce((s, i) => s + (i.amount || 0), 0)
+        const received = (p.invoices || []).filter(i => i.status === 'Paid').reduce((s, i) => s + (i.amount || 0), 0)
         const costs    = (p.supplierInvoices || []).reduce((s, i) => s + (i.amount || 0), 0) + (p.labourCosts || []).reduce((s, i) => s + (i.amount || 0), 0)
         const margin   = received - costs
         return (
@@ -247,11 +295,11 @@ function AllProjectsPL() {
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
               <div style={{ background: S.surface, borderRadius: 8, padding: '8px 10px' }}>
-                <div style={{ fontSize: 9, color: S.muted, textTransform: 'uppercase', marginBottom: 2 }}>Invoiced</div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: S.text, fontFamily: 'monospace' }}>{fmt(income)}</div>
+                <div style={{ fontSize: 9, color: S.muted, textTransform: 'uppercase', marginBottom: 2 }}>Net invoiced</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: S.text, fontFamily: 'monospace' }}>{fmt(net)}</div>
               </div>
               <div style={{ background: S.surface, borderRadius: 8, padding: '8px 10px' }}>
-                <div style={{ fontSize: 9, color: S.muted, textTransform: 'uppercase', marginBottom: 2 }}>Received</div>
+                <div style={{ fontSize: 9, color: S.muted, textTransform: 'uppercase', marginBottom: 2 }}>Net received</div>
                 <div style={{ fontSize: 12, fontWeight: 700, color: S.green, fontFamily: 'monospace' }}>{fmt(received)}</div>
               </div>
               <div style={{ background: S.surface, borderRadius: 8, padding: '8px 10px' }}>
@@ -276,13 +324,18 @@ export default function FinanceView() {
   const p = activeProject
   const STATUS_COLORS = { Paid: S.green, Unpaid: S.amber, Overdue: S.red }
 
-  const totalIncome   = (p?.invoices || []).reduce((s, i) => s + (i.amount || 0) + (i.vat || 0), 0)
-  const paidIncome    = (p?.invoices || []).filter(i => i.status === 'Paid').reduce((s, i) => s + (i.amount || 0) + (i.vat || 0), 0)
-  const supplierTotal = (p?.supplierInvoices || []).reduce((s, i) => s + (i.amount || 0), 0)
-  const labourTotal   = (p?.labourCosts || []).reduce((s, i) => s + (i.amount || 0), 0)
-  const totalCosts    = supplierTotal + labourTotal
-  const margin        = paidIncome - totalCosts
-  const overdueTotal  = (p?.invoices || []).filter(i => i.status === 'Overdue').reduce((s, i) => s + (i.amount || 0) + (i.vat || 0), 0)
+  const netInvoiced    = (p?.invoices || []).reduce((s, i) => s + (i.amount || 0), 0)
+  const vatInvoiced    = (p?.invoices || []).reduce((s, i) => s + (i.vat || 0), 0)
+  const totalIncome    = netInvoiced + vatInvoiced
+  const paidNet        = (p?.invoices || []).filter(i => i.status === 'Paid').reduce((s, i) => s + (i.amount || 0), 0)
+  const paidVat        = (p?.invoices || []).filter(i => i.status === 'Paid').reduce((s, i) => s + (i.vat || 0), 0)
+  const paidIncome     = paidNet + paidVat
+  const supplierTotal  = (p?.supplierInvoices || []).reduce((s, i) => s + (i.amount || 0), 0)
+  const labourTotal    = (p?.labourCosts || []).reduce((s, i) => s + (i.amount || 0), 0)
+  const totalCosts     = supplierTotal + labourTotal
+  const margin         = paidNet - totalCosts
+  const overdueTotal   = (p?.invoices || []).filter(i => i.status === 'Overdue').reduce((s, i) => s + (i.amount || 0) + (i.vat || 0), 0)
+  const hasVat         = vatInvoiced > 0
 
   const TABS = ['invoices', 'p&l', 'costs', 'all projects']
 
@@ -310,12 +363,23 @@ export default function FinanceView() {
               <div style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: 12, padding: 16 }}>
                 <div style={{ fontSize: 11, color: S.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Income</div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                  <span style={{ fontSize: 13, color: S.muted }}>Total invoiced</span>
+                  <span style={{ fontSize: 13, color: S.muted }}>Net invoiced (ex-VAT)</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: S.text, fontFamily: 'monospace' }}>{fmt(netInvoiced)}</span>
+                </div>
+                {hasVat && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <span style={{ fontSize: 13, color: S.muted }}>VAT collected</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: S.muted, fontFamily: 'monospace' }}>{fmt(vatInvoiced)}</span>
+                  </div>
+                )}
+                <div style={{ height: 1, background: S.border, margin: '8px 0' }} />
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <span style={{ fontSize: 13, color: S.muted }}>Total invoiced (inc-VAT)</span>
                   <span style={{ fontSize: 13, fontWeight: 700, color: S.text, fontFamily: 'monospace' }}>{fmt(totalIncome)}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: 13, color: S.muted }}>Received</span>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: S.green, fontFamily: 'monospace' }}>{fmt(paidIncome)}</span>
+                  <span style={{ fontSize: 13, color: S.muted }}>Net received</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: S.green, fontFamily: 'monospace' }}>{fmt(paidNet)}</span>
                 </div>
                 {overdueTotal > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
@@ -324,6 +388,7 @@ export default function FinanceView() {
                   </div>
                 )}
               </div>
+
               <div style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: 12, padding: 16 }}>
                 <div style={{ fontSize: 11, color: S.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Costs</div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
@@ -340,11 +405,15 @@ export default function FinanceView() {
                   <span style={{ fontSize: 13, fontWeight: 700, color: S.blue, fontFamily: 'monospace' }}>{fmt(totalCosts)}</span>
                 </div>
               </div>
+
               <div style={{ background: margin >= 0 ? S.green + '15' : S.red + '15', border: `1px solid ${margin >= 0 ? S.green : S.red}44`, borderRadius: 12, padding: 16 }}>
-                <div style={{ fontSize: 11, color: S.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Margin (cash received – costs)</div>
+                <div style={{ fontSize: 11, color: S.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Net margin (ex-VAT received – costs)</div>
                 <div style={{ fontSize: 32, fontWeight: 900, color: margin >= 0 ? S.green : S.red, fontFamily: 'monospace' }}>{fmt(margin)}</div>
-                {totalCosts > 0 && paidIncome > 0 && (
-                  <div style={{ fontSize: 12, color: S.muted, marginTop: 4 }}>{Math.round(margin / paidIncome * 100)}% margin on received income</div>
+                {totalCosts > 0 && paidNet > 0 && (
+                  <div style={{ fontSize: 12, color: S.muted, marginTop: 4 }}>{Math.round(margin / paidNet * 100)}% margin on net received</div>
+                )}
+                {hasVat && (
+                  <div style={{ fontSize: 11, color: S.muted, marginTop: 6, padding: '4px 8px', background: S.surface, borderRadius: 6, display: 'inline-block' }}>VAT excluded from margin</div>
                 )}
               </div>
             </div>
@@ -355,23 +424,29 @@ export default function FinanceView() {
           <div>
             <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
               <div style={{ flex: 1, background: S.card, border: `1px solid ${S.border}`, borderRadius: 12, padding: '12px 14px' }}>
-                <div style={{ fontSize: 10, color: S.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Invoiced</div>
-                <div style={{ fontSize: 20, fontWeight: 900, color: S.accent, fontFamily: 'monospace' }}>{fmt(totalIncome)}</div>
+                <div style={{ fontSize: 10, color: S.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Net invoiced</div>
+                <div style={{ fontSize: 20, fontWeight: 900, color: S.accent, fontFamily: 'monospace' }}>{fmt(netInvoiced)}</div>
+                {hasVat && <div style={{ fontSize: 10, color: S.muted, marginTop: 2 }}>+{fmt(vatInvoiced)} VAT</div>}
               </div>
               <div style={{ flex: 1, background: S.card, border: `1px solid ${S.border}`, borderRadius: 12, padding: '12px 14px' }}>
-                <div style={{ fontSize: 10, color: S.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Received</div>
-                <div style={{ fontSize: 20, fontWeight: 900, color: S.green, fontFamily: 'monospace' }}>{fmt(paidIncome)}</div>
+                <div style={{ fontSize: 10, color: S.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Net received</div>
+                <div style={{ fontSize: 20, fontWeight: 900, color: S.green, fontFamily: 'monospace' }}>{fmt(paidNet)}</div>
+                {hasVat && <div style={{ fontSize: 10, color: S.muted, marginTop: 2 }}>+{fmt(paidVat)} VAT</div>}
               </div>
             </div>
+
             <button onClick={() => setShowAddInvoice(true)} style={{ width: '100%', padding: 13, background: S.accent, color: S.bg, border: 'none', borderRadius: 12, fontWeight: 800, fontSize: 14, cursor: 'pointer', marginBottom: 14 }}>
               + New invoice
             </button>
+
             {(p?.invoices || []).length === 0 && (
               <div style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: 12, padding: 24, textAlign: 'center', color: S.muted, fontSize: 14 }}>No invoices yet</div>
             )}
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {(p?.invoices || []).map(inv => {
                 const color = STATUS_COLORS[inv.status] || S.muted
+                const invHasVat = (inv.vat || 0) > 0
                 return (
                   <button key={inv.id} onClick={() => setSelectedInvoice(inv)}
                     style={{ background: S.card, border: `1px solid ${color}44`, borderRadius: 12, padding: '14px 16px', cursor: 'pointer', textAlign: 'left', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
@@ -380,8 +455,11 @@ export default function FinanceView() {
                       <div style={{ fontSize: 14, fontWeight: 700, color: S.text, marginBottom: 3 }}>{inv.description}</div>
                       <div style={{ fontSize: 12, color: S.muted }}>Due {inv.dueDate}</div>
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0 }}>
-                      <div style={{ fontSize: 16, fontWeight: 900, color: S.text, fontFamily: 'monospace' }}>{fmt((inv.amount || 0) + (inv.vat || 0))}</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
+                      <div style={{ fontSize: 16, fontWeight: 900, color: S.text, fontFamily: 'monospace' }}>
+                        £{((inv.amount || 0) + (inv.vat || 0)).toLocaleString('en-GB')}
+                      </div>
+                      {!invHasVat && <div style={{ fontSize: 10, color: S.muted }}>No VAT</div>}
                       <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 20, color, background: color + '22' }}>{inv.status}</span>
                     </div>
                   </button>
