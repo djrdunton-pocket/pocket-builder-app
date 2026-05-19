@@ -226,8 +226,21 @@ export function AppProvider({ children }) {
     } catch (e) { console.log('Trial started email failed:', e) }
   }
 
+  // Computed plan state — defined before addProject so it can be used inside it
+  const getIsTrialExpired = (prof) => prof?.plan_tier === 'expired' ||
+    (prof?.trial_expires_at && new Date(prof.trial_expires_at) < new Date() &&
+    !['starter', 'growth', 'pro', 'enterprise'].includes(prof?.plan_tier || ''))
+
   const addProject = async (proj) => {
     try {
+      const planLimits = { starter: 2, growth: 5, pro: 10 }
+      const limit = planLimits[profile?.plan_tier]
+      if (getIsTrialExpired(profile)) return { success: false, reason: 'expired' }
+      if (limit) {
+        const activeCount = projects.filter(p => p.status === 'active').length
+        if (activeCount >= limit) return { success: false, reason: 'limit' }
+      }
+
       const { data, error } = await supabase.from('projects').insert({
         builder_id: user.id,
         name: proj.name,
@@ -478,10 +491,7 @@ export function AppProvider({ children }) {
     ? Math.max(0, Math.ceil((new Date(profile.trial_expires_at).getTime() - Date.now()) / 86400000))
     : null
 
-  const isTrialExpired = profile?.plan_tier === 'expired' ||
-    (profile?.trial_expires_at && new Date(profile.trial_expires_at) < new Date() &&
-    !['starter', 'growth', 'pro', 'enterprise'].includes(profile?.plan_tier || ''))
-
+  const isTrialExpired = getIsTrialExpired(profile)
   const isPremium = ['starter', 'growth', 'pro', 'enterprise', 'trial'].includes(profile?.plan_tier || '')
 
   return (

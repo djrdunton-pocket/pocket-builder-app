@@ -29,9 +29,10 @@ function StatCard({ label, value, color = S.accent, sub }) {
 }
 
 function AddProjectSheet({ onClose, onCreated }) {
-  const { addProject } = useApp()
+  const { addProject, isTrialExpired } = useApp()
   const [form, setForm] = useState({ name: '', address: '', startDate: '', endDate: '', budget: '' })
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
   const inp = (label, key, type = 'text', placeholder = '') => (
@@ -45,8 +46,19 @@ function AddProjectSheet({ onClose, onCreated }) {
   const save = async () => {
     if (!form.name) return
     setLoading(true)
-    await addProject(form)
+    setError('')
+    const result = await addProject(form)
     setLoading(false)
+    if (!result.success) {
+      if (result.reason === 'expired') {
+        setError('Your trial has ended. Please choose a plan to create new projects.')
+      } else if (result.reason === 'limit') {
+        setError('You have reached your plan limit. Upgrade to add more active projects.')
+      } else {
+        setError('Something went wrong. Please try again.')
+      }
+      return
+    }
     onClose()
     if (onCreated) onCreated()
   }
@@ -70,6 +82,7 @@ function AddProjectSheet({ onClose, onCreated }) {
             {inp('End date', 'endDate', 'date')}
           </div>
           {inp('Agreed budget (£)', 'budget', 'number', '85000')}
+          {error && <div style={{ color: S.red, fontSize: 13, marginBottom: 12, padding: '9px 12px', background: S.red + '15', borderRadius: 8 }}>{error}</div>}
           <button onClick={save} disabled={!form.name || loading}
             style={{ width: '100%', padding: 14, background: S.accent, color: S.bg, border: 'none', borderRadius: 12, fontWeight: 800, fontSize: 15, cursor: 'pointer', opacity: form.name && !loading ? 1 : 0.5 }}>
             {loading ? 'Creating…' : 'Create project'}
@@ -278,40 +291,6 @@ function ProjectDashboard() {
             </button>
           )}
         </div>
-
-        {(p.photos || []).length > 0 && (
-          <div style={{ marginBottom: 16 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: S.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Recent photos</span>
-              <button onClick={() => setActiveTab('comms')} style={{ fontSize: 12, color: S.accent, fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer' }}>See all</button>
-            </div>
-            <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
-              {(p.photos || []).slice(0, 5).map(ph => (
-                <div key={ph.id} style={{ flexShrink: 0, width: 100, height: 100, background: S.card, borderRadius: 10, border: `1px solid ${S.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 4 }}>
-                  <span style={{ fontSize: 28 }}>📸</span>
-                  <span style={{ fontSize: 9, color: S.muted, textAlign: 'center', padding: '0 4px', lineHeight: 1.3 }}>{ph.caption}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {(p.changeRequests || []).length > 0 && (
-          <div style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: S.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Change requests</div>
-            {(p.changeRequests || []).map(cr => (
-              <div key={cr.id} style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: 10, padding: '12px 14px', marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
-                <div>
-                  <div style={{ fontSize: 13, color: S.text, fontWeight: 600 }}>{cr.text}</div>
-                  <div style={{ fontSize: 11, color: S.muted, marginTop: 2 }}>By {cr.by} · {cr.date}</div>
-                </div>
-                <span style={{ flexShrink: 0, fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 20, color: cr.status === 'Approved' ? S.green : cr.status === 'Rejected' ? S.red : S.amber, background: (cr.status === 'Approved' ? S.green : cr.status === 'Rejected' ? S.red : S.amber) + '22' }}>
-                  {cr.status}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
     </div>
   )
