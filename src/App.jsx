@@ -1,6 +1,6 @@
-import { ToastProvider } from './components/Toast.jsx'
 import { useState } from 'react'
 import { AppProvider, useApp } from './context.jsx'
+import { ToastProvider } from './components/Toast.jsx'
 import BottomNav from './components/BottomNav.jsx'
 import HomeView from './views/HomeView.jsx'
 import TimelineView from './views/TimelineView.jsx'
@@ -32,6 +32,39 @@ const Inp = ({ label, value, onChange, type = 'text', placeholder }) => (
   </div>
 )
 
+function TrialBanner() {
+  const { trialDaysLeft, isTrialExpired, profile } = useApp()
+  const [dismissed, setDismissed] = useState(false)
+
+  if (dismissed) return null
+  if (!profile?.trial_started_at) return null
+  if (['starter', 'growth', 'pro', 'enterprise'].includes(profile?.plan_tier)) return null
+
+  if (isTrialExpired) {
+    return (
+      <div style={{ background: S.red + '22', borderBottom: `1px solid ${S.red}44`, padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+        <div style={{ fontSize: 13, color: S.red, fontWeight: 600 }}>Your trial has ended — projects are now read-only</div>
+        <button style={{ padding: '6px 14px', background: S.red, color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 12, cursor: 'pointer', flexShrink: 0 }}>
+          Choose a plan
+        </button>
+      </div>
+    )
+  }
+
+  if (trialDaysLeft === null) return null
+
+  const color = trialDaysLeft <= 7 ? S.red : trialDaysLeft <= 14 ? S.amber : S.accent
+
+  return (
+    <div style={{ background: color + '15', borderBottom: `1px solid ${color}33`, padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+      <div style={{ fontSize: 13, color, fontWeight: 600 }}>
+        {trialDaysLeft === 0 ? 'Trial expires today' : `Free trial — ${trialDaysLeft} day${trialDaysLeft === 1 ? '' : 's'} remaining`}
+      </div>
+      <button onClick={() => setDismissed(true)} style={{ background: 'none', border: 'none', color, cursor: 'pointer', fontSize: 18, lineHeight: 1, padding: '0 4px', flexShrink: 0 }}>×</button>
+    </div>
+  )
+}
+
 function MarketingPage() {
   const { setPage } = useApp()
   return (
@@ -62,7 +95,7 @@ function MarketingPage() {
           <button onClick={() => setPage('signup')} style={{ padding: '13px 28px', background: S.accent, color: S.bg, border: 'none', borderRadius: 10, fontWeight: 800, fontSize: 15, cursor: 'pointer' }}>Start free trial →</button>
           <button onClick={() => setPage('login')} style={{ padding: '13px 28px', background: S.surface, color: S.text, border: `1px solid ${S.border}`, borderRadius: 10, fontWeight: 700, fontSize: 15, cursor: 'pointer' }}>Sign in</button>
         </div>
-        <div style={{ marginTop: 16, fontSize: 12, color: S.muted }}>No credit card required · 14-day free trial</div>
+        <div style={{ marginTop: 16, fontSize: 12, color: S.muted }}>No credit card required · 60-day free trial</div>
       </section>
 
       <section style={{ padding: '0 24px 80px', maxWidth: 1000, margin: '0 auto' }}>
@@ -91,7 +124,7 @@ function MarketingPage() {
           <button onClick={() => setPage('signup')} style={{ padding: '14px 32px', background: S.accent, color: S.bg, border: 'none', borderRadius: 12, fontWeight: 800, fontSize: 16, cursor: 'pointer' }}>
             Get started free →
           </button>
-          <div style={{ marginTop: 14, fontSize: 12, color: S.muted }}>Questions? Email us at <span style={{ color: S.accent }}>hello@pocketbuilder.co</span></div>
+          <div style={{ marginTop: 14, fontSize: 12, color: S.muted }}>Questions? Email us at <span style={{ color: S.accent }}>hello@pocketbuilder.co.uk</span></div>
         </div>
       </section>
 
@@ -195,7 +228,7 @@ function SignUpPage() {
         <div style={{ textAlign: 'center', marginBottom: 28 }}>
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 14 }}><Logo size={52} /></div>
           <div style={{ fontSize: 22, fontWeight: 900, color: S.text, letterSpacing: '-0.02em' }}>Create account</div>
-          <div style={{ fontSize: 13, color: S.muted, marginTop: 4 }}>14-day free trial · No credit card required</div>
+          <div style={{ fontSize: 13, color: S.muted, marginTop: 4 }}>60-day free trial · No credit card required</div>
         </div>
 
         <div style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: 16, padding: 24, marginBottom: 16 }}>
@@ -256,10 +289,7 @@ function PendingPage() {
         <div style={{ fontSize: 56, marginBottom: 16 }}>⏳</div>
         <div style={{ fontSize: 22, fontWeight: 900, color: S.text, marginBottom: 12 }}>Awaiting approval</div>
         <div style={{ fontSize: 14, color: S.muted, lineHeight: 1.7, marginBottom: 28 }}>
-          Hi {profile?.name?.split(' ')[0] || 'there'} — your builder account is being reviewed. We'll email you once approved, usually within 24 hours.
-        </div>
-        <div style={{ background: S.card, border: `1px solid ${S.border}`, borderRadius: 12, padding: 16, marginBottom: 20, fontSize: 13, color: S.muted }}>
-          Questions? Email us at <span style={{ color: S.accent }}>hello@pocketbuilder.co</span>
+          Hi {profile?.name?.split(' ')[0] || 'there'} — your account is being reviewed.
         </div>
         <button onClick={logout} style={{ padding: '10px 24px', background: S.surface, color: S.muted, border: `1px solid ${S.border}`, borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
           Sign out
@@ -281,13 +311,14 @@ function LoadingScreen() {
 }
 
 function AppShell() {
-  const { activeTab, profile, activeProject, projects } = useApp()
+  const { activeTab, profile } = useApp()
   const isBuilder = profile?.role === 'builder' || profile?.role === 'admin'
 
   if (!profile) return <LoadingScreen />
 
   return (
     <div style={{ minHeight: '100vh', background: S.bg, fontFamily: "'DM Sans','Segoe UI',sans-serif", color: S.text, maxWidth: 600, margin: '0 auto' }}>
+      <TrialBanner />
       <div style={{ paddingBottom: 64 }}>
         {activeTab === 'home'     && <HomeView />}
         {activeTab === 'timeline' && <TimelineView />}
