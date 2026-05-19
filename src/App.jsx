@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { AppProvider, useApp } from './context.jsx'
 import { ToastProvider } from './components/Toast.jsx'
 import BottomNav from './components/BottomNav.jsx'
@@ -334,6 +334,15 @@ function AppShell() {
 
 function AppRouter() {
   const { page, loading } = useApp()
+
+  useEffect(() => {
+    const hash = window.location.hash
+    if (hash && hash.includes('access_token')) {
+      window.location.hash = ''
+      window.location.href = 'https://pocketbuilder.co.uk'
+    }
+  }, [])
+
   if (loading)              return <LoadingScreen />
   if (page === 'marketing') return <MarketingPage />
   if (page === 'login')     return <LoginPage />
